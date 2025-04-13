@@ -560,14 +560,18 @@ export default function Home() {
                     <CardHeader>
                       <CardTitle>Explanatory UI</CardTitle>
                       <CardDescription>
-                        Interactive explanations for "{uploadedFile.name}".
+                      The gamified, AI-driven explanatory container acts as an open-ended virtual teacher that intelligently breaks down complex content into digestible, interactive elements. 
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {/* Add interactive components here */}
                       <p className="text-muted-foreground">
-                        This section will dynamically generate interactive components based on
-                        AI analysis of the uploaded document.
+                      It features an AI-powered summarizer that adapts explanations based on user level (beginner, intermediate, advanced), with toggles like “Explain Like I’m 5” or “Deep Dive.” 
+                      The UI includes collapsible, modular sections covering definitions, use-cases, analogies, and real-world examples, while visual support like GIF-style animations, charts, and hover-to-explain tooltips enhance understanding. 
+                      Users engage in a gamified experience through XP rewards, unlockable content, progress tracking, mini-quizzes, and challenges that allow AI to evaluate their understanding. 
+                      File-aware intelligence supports various formats including documents and programming files, offering line-by-line code explanations and optimization tips. An interactive “Ask Why” or “Show Another Way” button prompts deeper AI clarification, with voice input and multilingual support for accessibility. 
+                      Users can choose their AI tutor persona for a customized tone, and the system remembers past interactions to personalize future help. 
+                      The entire interface is animated using Framer Motion, styled with Tailwind and ShadCN, and powered by GPT-4 or Gemini APIs, making it not just an educational tool but a fully interactive, gamified learning assistant.
                       </p>
                       <ul className="list-disc list-inside mt-2">
                         <li>Interactive quizzes</li>
@@ -785,4 +789,5 @@ export default function Home() {
     </TooltipProvider>
   );
 }
+
 
