@@ -242,218 +242,202 @@ export default function Home() {
 
   const renderMarkdown = (markdown: string) => {
     return (
-      <ReactMarkdown
-        children={markdown}
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-        components={{
-          h1: ({node, ...props}) => <h1 className="text-4xl text-purple-400 mb-4" {...props} />,
-          h2: ({node, ...props}) => <h2 className="text-3xl text-pink-400 mb-3" {...props} />,
-          h3: ({node, ...props}) => <h3 className="text-2xl text-teal-300 mb-2" {...props} />,
-          code: ({node, inline, className, children, ...props}) => {
-            return !inline ? (
-              <pre className="bg-gray-800 p-4 rounded-md overflow-x-auto text-green-300">
-                <code {...props}>{children}</code>
-              </pre>
-            ) : (
-              <code className="bg-gray-700 px-1 py-0.5 rounded text-yellow-300">{children}</code>
-            );
-          },
-          table: ({node, ...props}) => (
-            <table className="table-auto border border-gray-600 text-sm text-left">{props.children}</table>
-          ),
-          img: ({src, alt}) => (
-            <img src={src} alt={alt} className="rounded-lg shadow-md my-4" />
-          )
-        }}
-      />
+      
+        <ReactMarkdown
+          children={markdown}
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+          components={{
+            h1: ({node, ...props}) => <h1 className="text-4xl text-purple-400 mb-4" {...props} />,
+            h2: ({node, ...props}) => <h2 className="text-3xl text-pink-400 mb-3" {...props} />,
+            h3: ({node, ...props}) => <h3 className="text-2xl text-teal-300 mb-2" {...props} />,
+            code: ({node, inline, className, children, ...props}) => {
+              return !inline ? (
+                
+                  <code {...props}>{children}</code>
+                
+              ) : (
+                <code className="bg-gray-700 px-1 py-0.5 rounded text-yellow-300">{children}</code>
+              );
+            },
+            table: ({node, ...props}) => (
+              <table className="table-auto border border-gray-600 text-sm text-left">{props.children}</table>
+            ),
+            img: ({src, alt}) => (
+              <img src={src} alt={alt} className="rounded-lg shadow-md my-4" />
+            )
+          }}
+        />
+      
     );
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 bg-background/70 backdrop-blur-md z-10 p-4 border-b border-border">
-        <div className="container mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">DuinoLearn AI</h1>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
+    
+      
+        
+          
+            DuinoLearn AI
+          
+          
+            
+              
+                
                   <Settings className="h-5 w-5" />
-                  <span className="sr-only">Settings</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Customize app settings
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </header>
+                  Settings
+                
+              
+              Customize app settings
+            
+          
+        
+      
 
-      <main className="container mx-auto p-4 flex flex-col lg:flex-row gap-4 flex-1">
-        <Tabs defaultValue="upload" className="w-full lg:w-2/3">
-          <TabsList className="flex justify-center lg:justify-start">
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-          <TabsContent value="upload" className="outline-none">
-            <motion.div
-              {...getRootProps()}
-              className={`dropzone rounded-lg border-2 border-dashed border-accent/50 bg-secondary/50 text-center p-10 cursor-pointer transition-all ${
-                isDragActive ? 'border-primary bg-accent/50' : ''
-              }`}
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.3}}
-            >
-              <input {...getInputProps()} />
-              <Upload className="mx-auto h-8 w-8 text-accent mb-2" />
-              <p>Drag &amp; drop a file here, or click to select files</p>
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <Progress value={uploadProgress} className="mt-2" />
-              )}
-              {uploadedFile && (
-                <motion.div
-                  className="mt-4 p-4 rounded-md bg-muted text-sm"
-                  initial={{opacity: 0, x: -20}}
-                  animate={{opacity: 1, x: 0}}
-                  transition={{duration: 0.3}}
-                >
-                  {React.createElement(fileIcon, {className: "inline-block h-4 w-4 mr-2"})}
-                  {uploadedFile.name}
-                </motion.div>
-              )}
-            </motion.div>
-
-            {isSummarizing ? (
-               <div className="mt-4 p-4 rounded-md bg-muted text-sm">
-                <h2 className="font-bold mb-2">Summary</h2>
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ) : summary ? (
-              <motion.div
-                className="mt-4 p-4 rounded-md bg-muted text-sm"
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.3}}
-              >
-                <h2 className="font-bold mb-2">Summary</h2>
-                 {renderMarkdown(summary)}
-              </motion.div>
-            ) : null}
-
-            {uploadedFile && (
-              <div className="mt-4">
-                <div className="flex flex-col">
-                  <ScrollArea ref={chatContainerRef} className="mb-2 p-4 rounded-md bg-muted text-sm overflow-y-auto max-h-64">
-                    {chatHistory.map((message, index) => (
-                      <div
-                        key={index}
-                        className={`mb-2 p-3 rounded-md ${
-                          message.role === 'user' ? 'bg-primary/10 text-right' : 'bg-secondary/10 text-left'
-                        }`}
-                      >
-                        {renderMarkdown(message.content)}
-                      </div>
-                    ))}
-                  </ScrollArea>
-                  <div className="sticky bottom-0 bg-background/70 backdrop-blur-md p-3 rounded-md">
-                    <div className="flex items-center space-x-2">
-                      <Textarea
-                        placeholder="Ask me anything about the document..."
-                        value={currentMessage}
-                        onChange={(e) => setCurrentMessage(e.target.value)}
-                        className="flex-grow"
-                      />
-                      <Button onClick={handleSendMessage} disabled={isLoading}>
-                        {isLoading ? 'Sending...' : 'Send'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="history" className="outline-none">
-            <div className="flex flex-col gap-2">
-              {uploadHistory.length > 0 ? (
-                uploadHistory.map((file, index) => {
-                   const FileIconComponent = getFileIcon(file.name);
-                  return (
-                  <motion.div
-                    key={index}
-                    className="p-4 rounded-md bg-muted text-sm flex items-center justify-between"
-                    initial={{opacity: 0, y: 20}}
-                    animate={{opacity: 1, y: 0}}
-                    transition={{duration: 0.3, delay: index * 0.1}}
-                  >
-                    <div>
-                      {React.createElement(FileIconComponent, {className: "inline-block h-4 w-4 mr-2"})}
-                      {file.name}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(file.lastModified).toLocaleDateString()}
-                    </span>
-                  </motion.div>
-                )
-                })
-              ) : (
-                <p>No upload history available.</p>
-              )}
-
-              {uploadHistory.length > 0 && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Clear History
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Are you absolutely sure?</DialogTitle>
-                      <DialogDescription>
-                        This action cannot be undone. This will permanently delete your upload history
-                        from our servers.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
+      
+        
+          
+            
+              Upload
+              History
+              Settings
+            
+            
+              
+                
+                  
+                    
                       
-                       <Button variant="destructive" onClick={clearUploadHistory}>
+                      Drag &amp; drop a file here, or click to select files
+                      {uploadProgress > 0 && uploadProgress < 100 && (
+                        
+                      )}
+                      {uploadedFile && (
+                        
+                          {React.createElement(fileIcon, {className: "inline-block h-4 w-4 mr-2"})}
+                          {uploadedFile.name}
+                        
+                      )}
+                    
+                  
+                
+
+                {isSummarizing ? (
+                   
+                    
+                      Summary
+                      
+                    
+                  
+                ) : summary ? (
+                  
+                    
+                      Summary
+                       {renderMarkdown(summary)}
+                    
+                  
+                ) : null}
+
+                {uploadedFile && (
+                  
+                    
+                      
+                        
+                          {chatHistory.map((message, index) => (
+                            
+                              {renderMarkdown(message.content)}
+                            
+                          ))}
+                        
+                        
+                          
+                            
+                              
+                                Ask me anything about the document...
+                                
+                              
+                              
+                                {isLoading ? 'Sending...' : 'Send'}
+                              
+                            
+                          
+                        
+                      
+                    
+                  
+                )}
+              
+            
+
+            
+              
+                {uploadHistory.length > 0 ? (
+                  uploadHistory.map((file, index) => {
+                     const FileIconComponent = getFileIcon(file.name);
+                    return (
+                    
+                      
+                        
+                          {React.createElement(FileIconComponent, {className: "inline-block h-4 w-4 mr-2"})}
+                          {file.name}
+                        
+                        
+                          {new Date(file.lastModified).toLocaleDateString()}
+                        
+                      
+                    
+                  )
+                  })
+                ) : (
+                  
+                    No upload history available.
+                  
+                )}
+
+                {uploadHistory.length > 0 && (
+                  
+                    
+                      
+                        
+                          Are you absolutely sure?
+                          This action cannot be undone. This will permanently delete your upload history
+                          from our servers.
+                        
+                      
+                      
+                        
                           Delete
-                        </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </div>
-          </TabsContent>
+                        
+                      
+                    
+                  
+                )}
+              
+            
 
-          <TabsContent value="settings" className="outline-none">
-            <div className="flex flex-col gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Appearance</CardTitle>
-                  <CardDescription>Customize the look and feel of the app.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="dark-mode">Dark Mode</Label>
-                    <Switch id="dark-mode" checked={darkMode} onCheckedChange={setDarkMode} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+            
+              
+                
+                  
+                    Appearance
+                    Customize the look and feel of the app.
+                  
+                  
+                    
+                      Dark Mode
+                      
+                    
+                  
+                
+              
+            
+          
+        
+      
 
-      <footer className="p-4 text-center text-muted-foreground border-t border-border">
-        <p>&copy; {new Date().getFullYear()} DuinoLearn. All rights reserved.</p>
-      </footer>
-    </div>
+      
+        © {new Date().getFullYear()} DuinoLearn. All rights reserved.
+      
+    
   );
 }
+
