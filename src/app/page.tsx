@@ -171,7 +171,7 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto p-4 flex flex-col lg:flex-row gap-4 flex-1">
-        <Tabs defaultValue="upload" className="w-full">
+        <Tabs defaultValue="upload" className="w-full lg:w-2/3">
           <TabsList className="flex justify-center lg:justify-start">
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -323,5 +323,3 @@ export default function Home() {
     </div>
   );
 }
-
-
