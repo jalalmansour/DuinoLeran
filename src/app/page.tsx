@@ -633,6 +633,7 @@ export default function Home() {
                     </div>
                   </ScrollArea>
                   <div className="sticky bottom-0 pt-2">
+                    {/* Enhanced Chat Input */}
                     <div className="flex items-center space-x-2">
                       <Textarea
                         placeholder="Ask me anything about the document..."
@@ -641,7 +642,7 @@ export default function Home() {
                         onKeyDown={handleKeyDown}
                         ref={textAreaRef}
                         rows={1}
-                        className="resize-none flex-1"
+                        className="resize-none flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" // Tailwind classes applied directly
                         aria-label="Chat input"
                         disabled={!uploadedFile}
                       />
@@ -789,5 +790,3 @@ export default function Home() {
     </TooltipProvider>
   );
 }
-
-
