@@ -25,6 +25,9 @@ import {Separator} from '@/components/ui/separator';
 import {Tabs, TabsList, TabsTrigger, TabsContent} from "@/components/ui/tabs"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip"
 import {cn} from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface UploadedFile {
   name: string;
@@ -78,6 +81,8 @@ export default function Home() {
   const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
   const {toast} = useToast();
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
 
   useEffect(() => {
     document.body.classList.toggle('dark', darkMode);
@@ -87,7 +92,13 @@ export default function Home() {
   useEffect(() => {
     const storedHistory = localStorage.getItem('uploadHistory');
     if (storedHistory) {
-      setUploadHistory(JSON.parse(storedHistory));
+      try {
+        setUploadHistory(JSON.parse(storedHistory));
+      } catch (error) {
+        console.error('Failed to parse upload history from localStorage:', error);
+        localStorage.removeItem('uploadHistory');
+        setUploadHistory([]);
+      }
     }
   }, []);
 
@@ -96,7 +107,16 @@ export default function Home() {
     // Limit the history to the 10 most recent files
     const limitedHistory = newHistory.slice(0, 10);
     setUploadHistory(limitedHistory);
-    localStorage.setItem('uploadHistory', JSON.stringify(limitedHistory));
+    try {
+      localStorage.setItem('uploadHistory', JSON.stringify(limitedHistory));
+    } catch (error) {
+      console.error('Failed to save upload history to localStorage:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not save upload history due to storage quota limitations.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const clearUploadHistory = () => {
@@ -109,7 +129,20 @@ export default function Home() {
       const file = acceptedFiles[0];
       if (file) {
         const reader = new FileReader();
+
+        reader.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(progress);
+          }
+        };
+
+        reader.onloadstart = () => {
+          setUploadProgress(0);
+        };
+
         reader.onload = async (e) => {
+          setUploadProgress(100);
           const content = e.target?.result as string;
           const newFile: UploadedFile = {
             name: file.name,
@@ -126,6 +159,16 @@ export default function Home() {
           });
           await summarizeTheDocument(content);
         };
+
+        reader.onerror = () => {
+          toast({
+            title: 'Error Uploading',
+            description: 'Failed to read the file.',
+            variant: 'destructive',
+          });
+          setUploadProgress(0);
+        };
+
         reader.readAsText(file);
       }
     },
@@ -135,7 +178,7 @@ export default function Home() {
   const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
 
   const summarizeTheDocument = async (fileContent: string) => {
-    setIsLoading(true);
+    setIsSummarizing(true);
     try {
       const summaryResult = await summarizeDocument({fileContent: fileContent});
       setSummary(summaryResult.summary);
@@ -146,8 +189,10 @@ export default function Home() {
         variant: 'destructive',
       });
       console.error('Error summarizing document:', error);
+      setSummary('');
     } finally {
       setIsLoading(false);
+      setIsSummarizing(false);
     }
   };
 
@@ -230,6 +275,9 @@ export default function Home() {
               <input {...getInputProps()} />
               <Upload className="mx-auto h-8 w-8 text-accent mb-2" />
               <p>Drag &amp; drop a file here, or click to select files</p>
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <Progress value={uploadProgress} className="mt-2" />
+              )}
               {uploadedFile && (
                 <motion.div
                   className="mt-4 p-4 rounded-md bg-muted text-sm"
@@ -243,7 +291,12 @@ export default function Home() {
               )}
             </motion.div>
 
-            {summary && (
+            {isSummarizing ? (
+               <div className="mt-4 p-4 rounded-md bg-muted text-sm">
+                <h2 className="font-bold mb-2">Summary</h2>
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ) : summary ? (
               <motion.div
                 className="mt-4 p-4 rounded-md bg-muted text-sm"
                 initial={{opacity: 0, y: 20}}
@@ -253,15 +306,12 @@ export default function Home() {
                 <h2 className="font-bold mb-2">Summary</h2>
                 <p>{summary}</p>
               </motion.div>
-            )}
+            ) : null}
 
             {uploadedFile && (
               <div className="mt-4">
                 <div className="flex flex-col">
-                  <div
-                    ref={chatContainerRef}
-                    className="mb-2 p-4 rounded-md bg-muted text-sm overflow-y-auto max-h-64"
-                  >
+                  <ScrollArea ref={chatContainerRef} className="mb-2 p-4 rounded-md bg-muted text-sm overflow-y-auto max-h-64">
                     {chatHistory.map((message, index) => (
                       <div
                         key={index}
@@ -272,7 +322,7 @@ export default function Home() {
                         {message.content}
                       </div>
                     ))}
-                  </div>
+                  </ScrollArea>
                   <div className="sticky bottom-0 bg-background/70 backdrop-blur-md p-3 rounded-md">
                     <div className="flex items-center space-x-2">
                       <Textarea
@@ -336,9 +386,6 @@ export default function Home() {
                     </DialogHeader>
                     <DialogFooter>
                       
-                      <Button variant="secondary" type="button">
-                          Cancel
-                        </Button>
                        <Button variant="destructive" onClick={clearUploadHistory}>
                           Delete
                         </Button>
