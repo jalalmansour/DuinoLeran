@@ -360,6 +360,15 @@ export default function Home() {
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
+          h1: ({ node, ...props }) => (
+            <h1 className="text-4xl text-purple-400 mb-4" {...props} />
+          ),
+          h2: ({ node, ...props }) => (
+            <h2 className="text-3xl text-pink-400 mb-3" {...props} />
+          ),
+          h3: ({ node, ...props }) => (
+            <h3 className="text-2xl text-teal-300 mb-2" {...props} />
+          ),
           code({ node, inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline ? (
