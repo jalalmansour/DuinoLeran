@@ -586,7 +586,7 @@ export default function Home() {
               )}
 
               {/* Chat Section */}
-              <Card className="mt-4">
+              <Card className="mt-4 w-full">
                 <CardHeader>
                   <CardTitle>
                     Chat with Document
@@ -790,3 +790,4 @@ export default function Home() {
     </TooltipProvider>
   );
 }
+
