@@ -19,6 +19,7 @@ import {
   X,
   ChevronsDown,
   ChevronsUp,
+  Lightbulb,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { summarizeDocument } from '@/ai/flows/summarize-document';
@@ -470,11 +471,11 @@ export default function Home() {
                   </div>
                 </Card>
 
-                {/* Summary and Explanatory UI Section */}
+                {/* Summary Section */}
                 <Card className="flex flex-col overflow-hidden">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      Summary &amp; Explanatory UI
+                      Summary
                       {uploadedFile && (
                         <Button
                           variant="ghost"
@@ -493,7 +494,7 @@ export default function Home() {
                       )}
                     </CardTitle>
                     <CardDescription>
-                      AI-generated summary and interactive explanations of the document.
+                      AI-generated summary of the document.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className={cn(isSummaryCollapsed ? 'h-0' : 'h-auto', 'overflow-hidden transition-all duration-300')}>
@@ -501,7 +502,7 @@ export default function Home() {
                       <div className="flex items-center space-x-2">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         <p className="text-sm text-muted-foreground">
-                          Summarizing &amp; Generating UI...
+                          Summarizing...
                         </p>
                       </div>
                     ) : (
@@ -510,38 +511,12 @@ export default function Home() {
                           <>
                             <h3 className="text-lg font-semibold mb-2">Document Summary</h3>
                             <MemoizedMarkdown content={summary} />
-
-                            {isExplanatoryUIEnabled && uploadedFile ? (
-                              <div className="mt-4">
-                                <h3 className="text-lg font-semibold mb-2">Interactive Explanations</h3>
-                                <p className="text-muted-foreground mb-4">
-                                  This section features an interactive UI dynamically generated to explain the document: {uploadedFile.name}.
-                                </p>
-                                {/* Add interactive components here */}
-                                <div className="w-full max-w-md">
-                                  <Card>
-                                    <CardContent>
-                                      <p>
-                                        This section will dynamically generate interactive components based on
-                                        AI analysis of the uploaded document.
-                                      </p>
-                                      <ul className="list-disc list-inside mt-2">
-                                        <li>Interactive quizzes</li>
-                                        <li>Definition cards with animations</li>
-                                        <li>Timeline-based content</li>
-                                        <li>And more!</li>
-                                      </ul>
-                                    </CardContent>
-                                  </Card>
-                                </div>
-                              </div>
-                            ) : null}
                           </>
                         ) : (
                           <p className="text-sm text-muted-foreground">
                             {uploadedFile
-                              ? 'Summarizing and generating interactive UI...'
-                              : 'Upload a document to see its summary and interactive explanations.'}
+                              ? 'Summarizing document...'
+                              : 'Upload a document to see its summary.'}
                           </p>
                         )}
                       </>
@@ -549,6 +524,62 @@ export default function Home() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Explanatory UI Section */}
+              {uploadedFile && (
+                <div className="fixed bottom-4 right-4 z-50">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        className="rounded-full p-3 shadow-lg"
+                        onClick={() => setIsExplanatoryUIEnabled(!isExplanatoryUIEnabled)}
+                      >
+                        <Lightbulb className="h-6 w-6" />
+                        <span className="sr-only">
+                          {isExplanatoryUIEnabled ? 'Hide' : 'Show'} Explanatory UI
+                        </span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      {isExplanatoryUIEnabled ? 'Hide Explanatory UI' : 'Show Explanatory UI'}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+
+              {isExplanatoryUIEnabled && uploadedFile && (
+                <motion.div
+                  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-full max-w-4xl p-6 bg-background border rounded-lg shadow-xl"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Explanatory UI</CardTitle>
+                      <CardDescription>
+                        Interactive explanations for "{uploadedFile.name}".
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Add interactive components here */}
+                      <p className="text-muted-foreground">
+                        This section will dynamically generate interactive components based on
+                        AI analysis of the uploaded document.
+                      </p>
+                      <ul className="list-disc list-inside mt-2">
+                        <li>Interactive quizzes</li>
+                        <li>Definition cards with animations</li>
+                        <li>Timeline-based content</li>
+                        <li>And more!</li>
+                      </ul>
+                      <Button onClick={() => setIsExplanatoryUIEnabled(false)} variant="outline" className="mt-4">Close</Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
 
               {/* Chat Section */}
               <Card className="mt-4">
