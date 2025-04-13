@@ -93,8 +93,10 @@ export default function Home() {
 
   const saveUploadHistory = (file: UploadedFile) => {
     const newHistory = [file, ...uploadHistory];
-    setUploadHistory(newHistory);
-    localStorage.setItem('uploadHistory', JSON.stringify(newHistory));
+    // Limit the history to the 10 most recent files
+    const limitedHistory = newHistory.slice(0, 10);
+    setUploadHistory(limitedHistory);
+    localStorage.setItem('uploadHistory', JSON.stringify(limitedHistory));
   };
 
   const clearUploadHistory = () => {
