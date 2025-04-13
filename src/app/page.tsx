@@ -153,13 +153,24 @@ export default function Home() {
       const newHistory = [file, ...prevHistory].slice(0, 10); // Limit history
       try {
         localStorage.setItem('uploadHistory', JSON.stringify(newHistory));
-      } catch (error) {
-        console.error('Failed to save upload history:', error);
-        toast({
-          title: 'Storage Full',
-          description: 'Could not save to upload history. Local storage might be full.',
-          variant: 'warning',
-        });
+      } catch (error: any) {
+          if (error.name === 'QuotaExceededError') {
+              toast({
+                  title: 'Storage Full',
+                  description: 'Local storage quota exceeded. Please clear history or upload smaller files.',
+                  variant: 'warning',
+              });
+              // Optionally, clear the history to allow further uploads
+              // clearUploadHistory();
+          } else {
+              console.error('Failed to save upload history:', error);
+              toast({
+                  title: 'Error Saving History',
+                  description: 'Could not save to upload history. Local storage might be unavailable.',
+                  variant: 'warning',
+              });
+          }
+        return prevHistory;
       }
       return newHistory;
     });
