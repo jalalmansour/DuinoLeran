@@ -578,7 +578,7 @@ export default function Home() {
                                         )}
                                          {uploadedFile && chatHistory.length === 0 && !isChatLoading && (
                                             <p className="text-sm text-center text-muted-foreground italic py-4">
-                                                Ask a question about "{uploadedFile.name}".
+                                                Ask a question about "{uploadedFile?.name || 'the document'}".
                                             </p>
                                         )}
                                     </div>
@@ -739,3 +739,4 @@ export default function Home() {
     </TooltipProvider>
   );
 }
+
