@@ -29,6 +29,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import 'katex/dist/katex.min.css';
+
 interface UploadedFile {
   name: string;
   type: string;
@@ -234,6 +240,36 @@ export default function Home() {
 
   const fileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : File;
 
+  const renderMarkdown = (markdown: string) => {
+    return (
+      <ReactMarkdown
+        children={markdown}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          h1: ({node, ...props}) => <h1 className="text-4xl text-purple-400 mb-4" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-3xl text-pink-400 mb-3" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-2xl text-teal-300 mb-2" {...props} />,
+          code: ({node, inline, className, children, ...props}) => {
+            return !inline ? (
+              <pre className="bg-gray-800 p-4 rounded-md overflow-x-auto text-green-300">
+                <code {...props}>{children}</code>
+              </pre>
+            ) : (
+              <code className="bg-gray-700 px-1 py-0.5 rounded text-yellow-300">{children}</code>
+            );
+          },
+          table: ({node, ...props}) => (
+            <table className="table-auto border border-gray-600 text-sm text-left">{props.children}</table>
+          ),
+          img: ({src, alt}) => (
+            <img src={src} alt={alt} className="rounded-lg shadow-md my-4" />
+          )
+        }}
+      />
+    );
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 bg-background/70 backdrop-blur-md z-10 p-4 border-b border-border">
@@ -304,7 +340,7 @@ export default function Home() {
                 transition={{duration: 0.3}}
               >
                 <h2 className="font-bold mb-2">Summary</h2>
-                <p>{summary}</p>
+                 {renderMarkdown(summary)}
               </motion.div>
             ) : null}
 
@@ -319,7 +355,7 @@ export default function Home() {
                           message.role === 'user' ? 'bg-primary/10 text-right' : 'bg-secondary/10 text-left'
                         }`}
                       >
-                        {message.content}
+                        {renderMarkdown(message.content)}
                       </div>
                     ))}
                   </ScrollArea>
