@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import {
-  File as FileIconLucide, // Renamed to avoid conflict with built-in File type
+  File as FileIconLucide,
   MessageSquare,
   Upload,
   Sun,
@@ -14,15 +14,15 @@ import {
   ImageIcon,
   Code,
   BookOpen,
-  Loader2, // Added for loading spinner
-  Send, // Added for send icon
-  X, // Added for close icon
-  ChevronsDown, // Added for collapse icon
-  ChevronsUp, // Added for expand icon
+  Loader2,
+  Send,
+  X,
+  ChevronsDown,
+  ChevronsUp,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { summarizeDocument } from '@/ai/flows/summarize-document'; // Assuming these exist and work
-import { chatWithDocument } from '@/ai/flows/chat-with-document'; // Assuming these exist and work
+import { summarizeDocument } from '@/ai/flows/summarize-document';
+import { chatWithDocument } from '@/ai/flows/chat-with-document';
 import {
   Card,
   CardHeader,
@@ -63,16 +63,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
-import 'katex/dist/katex.min.css'; // Ensure KaTeX CSS is imported
+import 'katex/dist/katex.min.css';
 
-// Interfaces remain the same
 interface UploadedFile {
-  id: string; // Added unique ID for better list management
+  id: string;
   name: string;
   type: string;
   size: number;
   lastModified: number;
-  content: string; // Storing full content might be memory intensive for large files
+  content: string;
 }
 
 interface ChatMessage {
@@ -80,16 +79,14 @@ interface ChatMessage {
   content: string;
 }
 
-// Helper function to generate unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
-// Mapping file extensions to icons
 const getFileIcon = (fileName: string): React.ElementType => {
   const fileExtension = fileName.split('.').pop()?.toLowerCase();
   switch (fileExtension) {
     case 'pdf': return BookOpen;
     case 'docx': case 'doc': return FileIconLucide;
-    case 'pptx': case 'ppt': return FileIconLucide; // Consider a specific presentation icon if available
+    case 'pptx': case 'ppt': return FileIconLucide;
     case 'txt': return FileIconLucide;
     case 'py': case 'js': case 'jsx': case 'ts': case 'tsx': case 'html': case 'css': case 'json': case 'md': return Code;
     case 'jpg': case 'jpeg': case 'png': case 'gif': case 'svg': case 'webp': return ImageIcon;
@@ -97,7 +94,6 @@ const getFileIcon = (fileName: string): React.ElementType => {
   }
 };
 
-// Main Component
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [summary, setSummary] = useState<string>('');
@@ -105,25 +101,21 @@ export default function Home() {
   const [currentMessage, setCurrentMessage] = useState<string>('');
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
   const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
-  const [darkMode, setDarkMode] = useState<boolean>(true); // Default to dark mode
+  const [darkMode, setDarkMode] = useState<boolean>(true);
   const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null); // Use null when not uploading
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"upload" | "history" | "settings">("upload");
 
   const { toast } = useToast();
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  // --- Effects ---
 
-  // Apply dark mode class to body
   useEffect(() => {
     document.body.classList.toggle('dark', darkMode);
-    // Optional: Also add light class for explicit styling
-    // document.body.classList.toggle('light', !darkMode);
   }, [darkMode]);
 
-  // Load upload history from localStorage on mount
   useEffect(() => {
     try {
       const storedHistory = localStorage.getItem('uploadHistory');
@@ -132,55 +124,46 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Failed to parse upload history:', error);
-      localStorage.removeItem('uploadHistory'); // Clear corrupted data
+      localStorage.removeItem('uploadHistory');
     }
   }, []);
 
-  // Scroll chat to bottom when new messages are added or loading starts/stops
   useEffect(() => {
     if (chatContainerRef.current) {
-      // Use scrollHeight for the ScrollArea's viewport
       const viewport = chatContainerRef.current.querySelector('div[style*="overflow: scroll;"]');
       if (viewport) {
         viewport.scrollTop = viewport.scrollHeight;
       } else {
-        // Fallback for simpler ScrollArea structures
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
   }, [chatHistory, isChatLoading]);
 
-
-  // --- Upload History Management ---
-
   const saveUploadHistory = useCallback((file: UploadedFile) => {
     setUploadHistory((prevHistory) => {
-      // Avoid duplicates based on content and name (simple check)
       const exists = prevHistory.some(
         (item) => item.name === file.name && item.lastModified === file.lastModified
       );
       if (exists) return prevHistory;
 
-      const newHistory = [file, ...prevHistory].slice(0, 10); // Limit history
+      const newHistory = [file, ...prevHistory].slice(0, 10);
       try {
         localStorage.setItem('uploadHistory', JSON.stringify(newHistory));
       } catch (error: any) {
-          if (error.name === 'QuotaExceededError') {
-              toast({
-                  title: 'Storage Full',
-                  description: 'Local storage quota exceeded. Please clear history or upload smaller files.',
-                  variant: 'warning',
-              });
-              // Optionally, clear the history to allow further uploads
-              // clearUploadHistory();
-          } else {
-              console.error('Failed to save upload history:', error);
-              toast({
-                  title: 'Error Saving History',
-                  description: 'Could not save to upload history. Local storage might be unavailable.',
-                  variant: 'warning',
-              });
-          }
+        if (error.name === 'QuotaExceededError') {
+          toast({
+            title: 'Storage Full',
+            description: 'Local storage quota exceeded. Please clear history or upload smaller files.',
+            variant: 'warning',
+          });
+        } else {
+          console.error('Failed to save upload history:', error);
+          toast({
+            title: 'Error Saving History',
+            description: 'Could not save to upload history. Local storage might be unavailable.',
+            variant: 'warning',
+          });
+        }
         return prevHistory;
       }
       return newHistory;
@@ -196,22 +179,20 @@ export default function Home() {
     });
   }, [toast]);
 
-  // Added missing `summarizeTheDocument` function call which was removed from dependency array previously
   const loadFileFromHistory = useCallback(async (fileId: string) => {
     const fileToLoad = uploadHistory.find(file => file.id === fileId);
     if (fileToLoad) {
       setUploadedFile(fileToLoad);
-      setSummary(''); // Clear previous summary
-      setChatHistory([]); // Clear previous chat
-      setCurrentMessage(''); // Clear chat input
-      setIsSummarizing(true); // Indicate loading
+      setSummary('');
+      setChatHistory([]);
+      setCurrentMessage('');
+      setIsSummarizing(true);
       toast({
         title: 'File Loaded',
         description: `Loaded ${fileToLoad.name} from history. Summarizing...`,
       });
-      // Need to define or import summarizeTheDocument if not already done
-      // Assuming summarizeTheDocument exists in scope:
-      await summarizeTheDocument(fileToLoad.content); // Call the summary function
+      summarizeTheDocument(fileToLoad.content);
+      setActiveTab("upload"); // Switch to upload tab
     } else {
       toast({
         title: 'Error Loading File',
@@ -219,14 +200,9 @@ export default function Home() {
         variant: 'destructive',
       });
     }
-  }, [uploadHistory, toast]);
+  }, [uploadHistory, toast, setActiveTab]);
 
-
-  // --- AI Interaction ---
-
-  // Define summarizeTheDocument (assuming it was defined outside the useCallback previously)
-   const summarizeTheDocument = async (fileContent: string) => {
-    // This state is set before calling, but setting again doesn't hurt
+  const summarizeTheDocument = async (fileContent: string) => {
     setIsSummarizing(true);
     try {
       const summaryResult = await summarizeDocument({ fileContent: fileContent });
@@ -244,9 +220,8 @@ export default function Home() {
     }
   };
 
-  // --- File Drop Handling --- (Includes summarizeTheDocument call)
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => { // Made async to await summarizeTheDocument
+    async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
       if (!file) return;
 
@@ -290,20 +265,20 @@ export default function Home() {
             title: 'File Uploaded',
             description: `Successfully uploaded ${file.name}. Summarizing...`,
           });
-          setIsSummarizing(true); // Set summarizing before calling
+          setIsSummarizing(true);
           setUploadProgress(100);
-          await summarizeTheDocument(content); // Call the function
+          await summarizeTheDocument(content);
           setTimeout(() => setUploadProgress(null), 500);
 
         } catch (error: any) {
-            console.error('Error processing file:', error);
-            toast({
-                title: 'Error Processing File',
-                description: error.message || 'Could not process the uploaded file.',
-                variant: 'destructive',
-            });
-            setUploadProgress(null);
-            setIsSummarizing(false);
+          console.error('Error processing file:', error);
+          toast({
+            title: 'Error Processing File',
+            description: error.message || 'Could not process the uploaded file.',
+            variant: 'destructive',
+          });
+          setUploadProgress(null);
+          setIsSummarizing(false);
         }
       };
 
@@ -321,16 +296,13 @@ export default function Home() {
       reader.readAsText(file);
 
     },
-    // Dependencies: toast, saveUploadHistory, summarizeTheDocument
     [toast, saveUploadHistory, summarizeTheDocument]
   );
-
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
   });
-
 
   const handleSendMessage = async () => {
     const messageToSend = currentMessage.trim();
@@ -359,7 +331,7 @@ export default function Home() {
         role: 'assistant',
         content: `Error: ${error.message || 'Could not get response.'}`,
       };
-       setChatHistory((prev) => [...prev, errorMessage]);
+      setChatHistory((prev) => [...prev, errorMessage]);
       toast({
         title: 'Chat Error',
         description: error.message || 'Failed to get response from AI.',
@@ -371,51 +343,47 @@ export default function Home() {
     }
   };
 
-   // Handle Enter key press in textarea (Shift+Enter for newline)
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault(); // Prevent default newline insertion
+      event.preventDefault();
       handleSendMessage();
     }
   };
 
+  const FileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : Upload;
 
-  // --- Rendering ---
+  const MemoizedMarkdown = React.memo(({ content }: { content: string }) => (
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      <ReactMarkdown
+        children={content}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline ? (
+              <pre className={cn(className, 'bg-gray-800 dark:bg-gray-900 rounded p-3 my-3 overflow-x-auto')} {...props}>
+                <code className={cn("text-sm", match ? `language-${match[1]}` : '')}>{children}</code>
+              </pre>
+            ) : (
+              <code className={cn(className, "bg-gray-700 dark:bg-gray-600 px-1 py-0.5 rounded text-yellow-300 dark:text-yellow-400")} {...props}>
+                {children}
+              </code>
+            );
+          },
+          table: ({ node, ...props }) => (
+            <div className="overflow-x-auto">
+              <table className="table-auto border-collapse border border-gray-400 dark:border-gray-600 w-full my-3 text-sm" {...props} />
+            </div>
+          ),
+          th: ({ node, ...props }) => <th className="border border-gray-300 dark:border-gray-700 px-2 py-1 bg-gray-100 dark:bg-gray-800 font-medium" {...props} />,
+          td: ({ node, ...props }) => <td className="border border-gray-300 dark:border-gray-700 px-2 py-1" {...props} />,
+        }}
+      />
+    </div>
+  ));
+  MemoizedMarkdown.displayName = 'MemoizedMarkdown';
 
-  const FileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : Upload; // Use Upload icon if no file
-
-    // Optimized Markdown Rendering Component
-    const MemoizedMarkdown = React.memo(({ content }: { content: string }) => (
-      <div className="prose prose-sm dark:prose-invert max-w-none"> {/* Apply classes to the wrapper div */}
-        <ReactMarkdown
-           children={content}
-           remarkPlugins={[remarkGfm, remarkMath]}
-           rehypePlugins={[rehypeKatex]}
-           components={{
-              code({ node, inline, className, children, ...props }) {
-               const match = /language-(\w+)/.exec(className || ''); // Keep this `className` access inside the custom component
-               return !inline ? (
-                 <pre className={cn(className, 'bg-gray-800 dark:bg-gray-900 rounded p-3 my-3 overflow-x-auto')} {...props}>
-                   <code className={cn("text-sm", match ? `language-${match[1]}` : '')}>{children}</code>
-                 </pre>
-               ) : (
-                 <code className={cn(className, "bg-gray-700 dark:bg-gray-600 px-1 py-0.5 rounded text-yellow-300 dark:text-yellow-400")} {...props}>
-                   {children}
-                 </code>
-               );
-             },
-              table: ({node, ...props}) => (
-                <div className="overflow-x-auto">
-                  <table className="table-auto border-collapse border border-gray-400 dark:border-gray-600 w-full my-3 text-sm" {...props} />
-                </div>
-               ),
-               th: ({node, ...props}) => <th className="border border-gray-300 dark:border-gray-700 px-2 py-1 bg-gray-100 dark:bg-gray-800 font-medium" {...props} />,
-               td: ({node, ...props}) => <td className="border border-gray-300 dark:border-gray-700 px-2 py-1" {...props} />,
-           }}
-       />
-     </div>
-    ))
-    MemoizedMarkdown.displayName = 'MemoizedMarkdown';
   return (
     <TooltipProvider>
       <div className={cn('flex flex-col min-h-screen', darkMode ? 'dark' : '')}>
@@ -428,7 +396,7 @@ export default function Home() {
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
                 {/* Wrap the icon and sr-only span in a single element */}
-                <span className="inline-flex items-center justify-center"> {/* Optional: classes to help layout if needed */}
+                <span className="inline-flex items-center justify-center">
                   {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                   <span className="sr-only">Toggle dark mode</span>
                 </span>
@@ -441,7 +409,7 @@ export default function Home() {
         </header>
 
         <main className="container mx-auto flex flex-col flex-grow p-4 space-y-4 md:space-y-6">
-          <Tabs defaultValue="upload" className="w-full">
+          <Tabs defaultValue={activeTab} className="w-full" onValueChange={(tab) => setActiveTab(tab)}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="upload">
                 Upload
@@ -668,7 +636,7 @@ export default function Home() {
                             className="border rounded-md p-4 flex items-center justify-between"
                           >
                             <div className="flex items-center space-x-4">
-                              {React.createElement(FileIconComponent, {className: "inline-block h-4 w-4 mr-2"})}
+                              {React.createElement(FileIconComponent, { className: "inline-block h-4 w-4 mr-2" })}
                               <div>
                                 <p className="text-sm font-medium leading-none">
                                   {file.name}
@@ -684,7 +652,9 @@ export default function Home() {
                             <Button
                               variant="link"
                               size="sm"
-                              onClick={() => loadFileFromHistory(file.id)}
+                              onClick={() => {
+                                loadFileFromHistory(file.id);
+                              }}
                             >
                               Load
                             </Button>
