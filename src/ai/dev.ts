@@ -1,1 +1,2 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/summarize-document.ts';
+import '@/ai/flows/chat-with-document.ts';
