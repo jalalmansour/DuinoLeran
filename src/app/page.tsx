@@ -425,8 +425,8 @@ export default function Home() {
 
 
   return (
-    <TooltipProvider>
-      <div className={cn('flex flex-col min-h-screen', darkMode ? 'dark' : '')}>
+    
+      
         {/* Header */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
           <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
@@ -586,17 +586,17 @@ export default function Home() {
                             </CardContent>
                             <CardFooter className="p-4 border-t">
                                 <div className="flex w-full items-center gap-2">
-                                    <Textarea
-                                        ref={textAreaRef}
-                                        placeholder={uploadedFile ? "Ask anything about the document..." : "Please upload a document first"}
-                                        value={currentMessage}
-                                        onChange={(e) => setCurrentMessage(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        rows={1}
-                                        className="min-h-[40px] max-h-[150px] flex-1 resize-none" // Adjust min/max height
-                                        disabled={!uploadedFile || isChatLoading || isSummarizing}
-                                        aria-label="Chat input"
-                                    />
+                                  <Textarea
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder={uploadedFile ? "Ask me anything about the document..." : "Please upload a document first"}
+                                    value={currentMessage}
+                                    onChange={(e) => setCurrentMessage(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    ref={textAreaRef}
+                                    rows={1}
+                                    disabled={!uploadedFile}
+                                    aria-label="Chat input"
+                                  />
                                     <Button
                                         type="button"
                                         onClick={handleSendMessage}
@@ -735,8 +735,8 @@ export default function Home() {
         <footer className="border-t px-4 py-3 text-center text-xs text-muted-foreground md:px-6">
           © {new Date().getFullYear()} DuinoLearn AI. All rights reserved.
         </footer>
-      </div>
-    </TooltipProvider>
+      
+    
   );
 }
 
