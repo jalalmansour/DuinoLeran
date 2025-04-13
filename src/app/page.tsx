@@ -38,15 +38,33 @@ interface ChatMessage {
   content: string;
 }
 
-const getFileIcon = (fileType: string) => {
-  if (fileType.startsWith('image')) {
-    return ImageIcon;
-  } else if (fileType.includes('code')) {
-    return Code;
-  } else if (fileType.includes('pdf') || fileType.includes('text') || fileType.includes('word')) {
-    return BookOpen;
+const getFileIcon = (fileName: string) => {
+  const fileExtension = fileName.split('.').pop()?.toLowerCase();
+
+  switch (fileExtension) {
+    case 'pdf':
+      return BookOpen;
+    case 'docx':
+    case 'doc':
+      return File;
+    case 'pptx':
+    case 'ppt':
+      return File;
+    case 'txt':
+      return File;
+    case 'py':
+    case 'js':
+    case 'html':
+    case 'css':
+      return Code;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+      return ImageIcon;
+    default:
+      return File;
   }
-  return File;
 };
 
 export default function Home() {
@@ -160,7 +178,7 @@ export default function Home() {
     }
   };
 
-  const fileIcon = uploadedFile ? getFileIcon(uploadedFile.type) : File;
+  const fileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : File;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -260,7 +278,7 @@ export default function Home() {
             <div className="flex flex-col gap-2">
               {uploadHistory.length > 0 ? (
                 uploadHistory.map((file, index) => {
-                   const FileIconComponent = getFileIcon(file.type);
+                   const FileIconComponent = getFileIcon(file.name);
                   return (
                   <motion.div
                     key={index}
