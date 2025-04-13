@@ -417,338 +417,328 @@ export default function Home() {
     ))
     MemoizedMarkdown.displayName = 'MemoizedMarkdown';
   return (
-    <TooltipProvider> {/* Restored */}
-      <div className={cn('flex flex-col min-h-screen', darkMode ? 'dark' : '')}> {/* Restored */}
+    <TooltipProvider>
+      <div className={cn('flex flex-col min-h-screen', darkMode ? 'dark' : '')}>
         {/* Header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6"> {/* Restored */}
-          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text"> {/* Restored */}
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
             DuinoLearn AI
           </h1>
           <Tooltip>
-   <TooltipTrigger asChild>
-     <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
-       {/* Wrap the icon and sr-only span in a single element */}
-       <span className="inline-flex items-center justify-center"> {/* Optional: classes to help layout if needed */}
-         {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-         <span className="sr-only">Toggle Theme</span>
-       </span>
-     </Button>
-   </TooltipTrigger>
-   <TooltipContent>
-     <p>Toggle {darkMode ? 'Light' : 'Dark'} Mode</p>
-   </TooltipContent>
- </Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
+                {/* Wrap the icon and sr-only span in a single element */}
+                <span className="inline-flex items-center justify-center"> {/* Optional: classes to help layout if needed */}
+                  {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  <span className="sr-only">Toggle dark mode</span>
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="center">
+              Toggle dark mode
+            </TooltipContent>
+          </Tooltip>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8"> {/* Restored */}
-          <Tabs defaultValue="upload" className="flex flex-col lg:flex-row gap-6 h-full"> {/* Restored */}
-            {/* Left Panel: Tabs Navigation */}
-            <div className="w-full lg:w-auto lg:max-w-xs shrink-0"> {/* Restored */}
-              <TabsList className="grid grid-cols-3 lg:grid-cols-1 lg:h-auto w-full"> {/* Restored */}
-                <TabsTrigger value="upload"> {/* Restored */}
-                  <Upload className="h-4 w-4 mr-2" /> Upload {/* Restored */}
-                </TabsTrigger>
-                <TabsTrigger value="history"> {/* Restored */}
-                  <BookOpen className="h-4 w-4 mr-2" /> History {/* Restored */}
-                </TabsTrigger>
-                <TabsTrigger value="settings"> {/* Restored */}
-                  <Settings className="h-4 w-4 mr-2" /> Settings {/* Restored */}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* Right Panel: Tabs Content */}
-            <div className="flex-1 min-w-0"> {/* Restored */}
-              {/* --- Upload/Chat Tab --- */}
-              <TabsContent value="upload" className="mt-0 h-full"> {/* Restored */}
-                  <div className="flex flex-col gap-4 h-full max-h-[calc(100vh-10rem)]"> {/* Restored */}
-                      {/* Dropzone Card */}
-                      <Card
-                          {...getRootProps()}
-                          className={cn(
-                              "border-2 border-dashed hover:border-primary/60 cursor-pointer transition-colors",
-                              isDragActive ? "border-primary bg-primary/10" : "border-muted"
-                          )}
-                      > {/* Restored */}
-                          <CardContent className="flex flex-col items-center justify-center p-6 text-center min-h-[120px]"> {/* Restored */}
-                              <input {...getInputProps()} /> {/* Restored */}
-                              <FileIcon className="h-10 w-10 text-muted-foreground mb-3" /> {/* Restored */}
-                              {isDragActive ? (
-                                  <p className="text-lg font-semibold text-primary">Drop the file here...</p>
-                              ) : (
-                                  <>
-                                      <p className="font-semibold">Drag & drop file here, or click to select</p>
-                                      <p className="text-sm text-muted-foreground mt-1">Supports text-based files (TXT, PDF, DOCX, code, etc.)</p>
-                                  </>
-                              )}
-                              {uploadProgress !== null && uploadProgress >= 0 && (
-                                  <div className="w-full max-w-xs mt-4">
-                                    <Progress value={uploadProgress} className="h-2" />
-                                    <p className="text-xs text-muted-foreground mt-1">{uploadProgress}%</p>
-                                  </div>
-                              )}
-                          </CardContent>
-                      </Card>
-
-                      {/* Separator */}
-                      <Separator className="my-2"/> {/* Restored */}
-
-                       {/* Content Area (Summary & Chat) */}
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden"> {/* Restored */}
-                        {/* Summary Section */}
-                        <Card className="flex flex-col overflow-hidden"> {/* Restored */}
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Summary</CardTitle>
-                                <CardDescription>AI-generated summary of the document.</CardDescription>
-                                {summary && (
-                                    <Button variant="ghost" size="icon" onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}>
-                                        {isSummaryCollapsed ? <ChevronsDown className="h-4 w-4"/> : <ChevronsUp className="h-4 w-4"/>}
-                                        <span className="sr-only">Collapse Summary</span>
-                                    </Button>
-                                )}
-                            </CardHeader>
-                            <motion.div
-                                className="flex-1 overflow-y-auto p-4"
-                                style={{ height: 'auto' }}
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{
-                                    opacity: 1,
-                                    height: isSummaryCollapsed ? 0 : 'auto',
-                                }}
-                                transition={{ duration: 0.3, ease: "easeInOut" }}
-                            >
-                                <CardContent className="p-0">
-                                    {isSummarizing ? (
-                                        <div className="space-y-3">
-                                            <Skeleton className="h-4 w-full" />
-                                            <Skeleton className="h-4 w-full" />
-                                            <Skeleton className="h-4 w-[80%]" />
-                                            <Skeleton className="h-4 w-full mt-4" />
-                                            <Skeleton className="h-4 w-[90%]" />
-                                        </div>
-                                    ) : summary ? (
-                                        <MemoizedMarkdown content={summary} />
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground italic">
-                                            {uploadedFile ? 'Summarizing...' : 'Upload a document to see its summary.'}
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </motion.div>
-                        </Card>
-
-                        {/* Chat Section */}
-                        <Card className="flex flex-col overflow-hidden"> {/* Restored */}
-                            <CardHeader> {/* Restored */}
-                                <CardTitle>Chat with Document</CardTitle>
-                                <CardDescription>Ask questions about the uploaded file.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-1 p-0 overflow-hidden"> {/* Restored */}
-                                <ScrollArea className="h-full p-4" ref={chatContainerRef}> {/* Restored */}
-                                    <div className="space-y-4"> {/* Restored */}
-                                        {chatHistory.map((message, index) => (
-                                            <div
-                                                key={index}
-                                                className={cn(
-                                                    "flex w-full",
-                                                    message.role === 'user' ? "justify-end" : "justify-start"
-                                                )}
-                                            > {/* Restored */}
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className={cn(
-                                                        "p-3 rounded-lg max-w-[80%]",
-                                                        message.role === 'user'
-                                                            ? "bg-primary text-primary-foreground"
-                                                            : "bg-muted"
-                                                    )}
-                                                > {/* Restored */}
-                                                     <MemoizedMarkdown content={message.content} />
-                                                </motion.div>
-                                            </div>
-                                        ))}
-                                        {isChatLoading && (
-                                            <div className="flex justify-start"> {/* Restored */}
-                                                 <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className="p-3 rounded-lg bg-muted flex items-center space-x-2"
-                                                > {/* Restored */}
-                                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                                    <span className="text-sm text-muted-foreground">Thinking...</span>
-                                                </motion.div>
-                                            </div>
-                                        )}
-                                        {!uploadedFile && chatHistory.length === 0 && (
-                                            <p className="text-sm text-center text-muted-foreground italic py-4">
-                                                Upload a document to start chatting.
-                                            </p>
-                                        )}
-                                         {uploadedFile && chatHistory.length === 0 && !isChatLoading && (
-                                            <p className="text-sm text-center text-muted-foreground italic py-4">
-                                                Ask a question about "{uploadedFile?.name || 'the document'}".
-                                            </p>
-                                        )}
-                                    </div>
-                                </ScrollArea>
-                            </CardContent>
-                            <CardFooter className="p-4 border-t"> {/* Restored */}
-                                <div className="flex w-full items-center gap-2"> {/* Restored */}
-                                    <Textarea
-                                        ref={textAreaRef}
-                                        placeholder={uploadedFile ? "Ask anything about the document..." : "Please upload a document first"}
-                                        value={currentMessage}
-                                        onChange={(e) => setCurrentMessage(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        rows={1}
-                                        className="min-h-[40px] max-h-[150px] flex-1 resize-none"
-                                        disabled={!uploadedFile || isChatLoading || isSummarizing}
-                                        aria-label="Chat input"
-                                        suppressHydrationWarning={true} // Keep this fix from earlier
-                                    /> {/* Restored */}
-                                    <Button
-                                        type="button"
-                                        onClick={handleSendMessage}
-                                        disabled={!uploadedFile || !currentMessage.trim() || isChatLoading || isSummarizing}
-                                        size="icon"
-                                    > {/* Restored */}
-                                        {isChatLoading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Send className="h-4 w-4" />
-                                        )}
-                                        <span className="sr-only">Send Message</span>
-                                    </Button>
-                                </div>
-                            </CardFooter>
-                        </Card>
-                      </div>
-                  </div>
-              </TabsContent>
-
-
-              {/* --- History Tab --- */}
-              <TabsContent value="history" className="mt-0"> {/* Restored */}
-                <Card> {/* Restored */}
-                  <CardHeader className="flex flex-row items-center justify-between"> {/* Restored */}
-                    <div> {/* Restored */}
-                      <CardTitle>Upload History</CardTitle>
-                      <CardDescription>View and reload recently uploaded files.</CardDescription>
-                    </div>
-                     {uploadHistory.length > 0 && (
-                       <Dialog> {/* Restored */}
-                         <DialogTrigger asChild> {/* Restored */}
-                           <Button variant="outline" size="sm">
-                             <Trash2 className="h-4 w-4 mr-1" /> Clear History
-                           </Button>
-                         </DialogTrigger>
-                         <DialogContent> {/* Restored */}
-                           <DialogHeader> {/* Restored */}
-                             <DialogTitle>Clear Upload History?</DialogTitle>
-                             <DialogDescription>
-                               This action cannot be undone. All locally stored file references and content previews will be removed.
-                             </DialogDescription>
-                           </DialogHeader>
-                           <DialogFooter> {/* Restored */}
-                             <DialogClose asChild> {/* Restored */}
-                               <Button variant="outline">Cancel</Button>
-                             </DialogClose>
-                             <DialogClose asChild> {/* Restored */}
-                                <Button variant="destructive" onClick={clearUploadHistory}>
-                                 Clear History
-                                </Button>
-                             </DialogClose>
-                           </DialogFooter>
-                         </DialogContent>
-                       </Dialog>
-                     )}
-                  </CardHeader>
-                  <CardContent> {/* Restored */}
-                    {uploadHistory.length > 0 ? (
-                      <ScrollArea className="h-[calc(100vh-20rem)]"> {/* Restored */}
-                        <ul className="space-y-2"> {/* Restored */}
-                          {uploadHistory.map((file) => {
-                            const FileIconComponent = getFileIcon(file.name);
-                            return (
-                              <li
-                                key={file.id} // Use generated unique ID
-                                className="flex items-center justify-between p-2 rounded-md border hover:bg-muted/50 transition-colors"
-                              > {/* Restored */}
-                                <div className="flex items-center gap-3 truncate"> {/* Restored */}
-                                  <FileIconComponent className="h-5 w-5 text-muted-foreground shrink-0" />
-                                  <div className="truncate"> {/* Restored */}
-                                    <span className="font-medium truncate block">{file.name}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {(file.size / 1024).toFixed(1)} KB - Uploaded: {new Date(file.lastModified).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => loadFileFromHistory(file.id)}
-                                > {/* Restored */}
-                                  Load
-                                </Button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </ScrollArea>
+        <main className="container mx-auto flex flex-col flex-grow p-4 space-y-4 md:space-y-6">
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="upload">
+                Upload
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                History
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                Settings
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="upload" className="mt-0 h-full">
+              <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+                {/* Upload Area */}
+                <Card className="flex-1 overflow-hidden">
+                  <div
+                    {...getRootProps()}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                      isDragActive
+                        ? "bg-accent"
+                        : "border-muted hover:bg-secondary"
+                    )}
+                  >
+                    <input {...getInputProps()} />
+                    <FileIcon className="h-10 w-10 text-muted-foreground mb-3" />
+                    {isDragActive ? (
+                      <p className="text-lg">Drop the file here...</p>
                     ) : (
-                      <p className="text-sm text-muted-foreground italic text-center py-4">
-                        No upload history found. Upload a file to get started.
+                      <div className="text-center">
+                        <p className="text-lg">
+                          Drag &amp; drop file here, or click to select
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Supports text-based files (TXT, PDF, DOCX, code,
+                          etc.)
+                        </p>
+                      </div>
+                    )}
+                    {uploadProgress !== null && uploadProgress >= 0 && (
+                      <div className="w-full mt-4">
+                        <Progress value={uploadProgress} />
+                        <p className="text-sm text-muted-foreground mt-1 text-right">
+                          {uploadProgress}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Summary Section */}
+                <Card className="flex flex-col overflow-hidden">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Summary
+                      {summary && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}
+                        >
+                          {isSummaryCollapsed ? (
+                            <ChevronsDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronsUp className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">
+                            {isSummaryCollapsed ? 'Expand' : 'Collapse'} Summary
+                          </span>
+                        </Button>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      AI-generated summary of the document.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className={cn(isSummaryCollapsed ? 'h-0' : 'h-auto', 'overflow-hidden transition-all duration-300')}>
+                    {isSummarizing ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <p className="text-sm text-muted-foreground">
+                          Summarizing...
+                        </p>
+                      </div>
+                    ) : summary ? (
+                      <MemoizedMarkdown content={summary} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {uploadedFile
+                          ? 'Summarizing...'
+                          : 'Upload a document to see its summary.'}
                       </p>
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
 
+              {/* Chat Section */}
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle>
+                    Chat with Document
+                  </CardTitle>
+                  <CardDescription>
+                    Ask questions about the uploaded file.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea ref={chatContainerRef} className="h-[300px] mb-2 pr-4">
+                    <div className="flex flex-col space-y-2">
+                      {chatHistory.map((message, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            'p-3 rounded-lg',
+                            message.role === 'user'
+                              ? 'bg-secondary text-secondary-foreground self-end'
+                              : 'bg-muted text-muted-foreground self-start'
+                          )}
+                        >
+                          <MemoizedMarkdown content={message.content} />
+                        </div>
+                      ))}
+                      {isChatLoading && (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <p className="text-sm text-muted-foreground">
+                            Thinking...
+                          </p>
+                        </div>
+                      )}
+                      {!uploadedFile && chatHistory.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          Upload a document to start chatting.
+                        </p>
+                      )}
+                      {uploadedFile && chatHistory.length === 0 && !isChatLoading && (
+                        <p className="text-sm text-muted-foreground">
+                          Ask a question about "{uploadedFile?.name ||
+                            'the document'}"
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                  <div className="sticky bottom-0 pt-2">
+                    <div className="flex items-center space-x-2">
+                      <Textarea
+                        placeholder="Ask me anything about the document..."
+                        value={currentMessage}
+                        onChange={(e) => setCurrentMessage(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        ref={textAreaRef}
+                        rows={1}
+                        className="resize-none flex-1"
+                        aria-label="Chat input"
+                        disabled={!uploadedFile}
+                      />
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={!uploadedFile || isChatLoading}
+                      >
+                        {isChatLoading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        Send
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-              {/* --- Settings Tab --- */}
-              <TabsContent value="settings" className="mt-0"> {/* Restored */}
-                <Card> {/* Restored */}
-                  <CardHeader> {/* Restored */}
-                    <CardTitle>Settings</CardTitle>
-                    <CardDescription>Customize application preferences.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6"> {/* Restored */}
-                    <div className="flex items-center justify-between p-4 rounded-lg border"> {/* Restored */}
-                       <div> {/* Restored */}
-                            <Label htmlFor="dark-mode" className="font-medium">Dark Mode</Label>
-                            <p className="text-sm text-muted-foreground">Toggle between light and dark themes.</p>
-                       </div>
-                      <Switch
-                        id="dark-mode"
-                        checked={darkMode}
-                        onCheckedChange={setDarkMode}
-                        aria-label="Toggle dark mode"
-                      /> {/* Restored */}
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload History</CardTitle>
+                  <CardDescription>
+                    View and reload recently uploaded files.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {uploadHistory.length > 0 && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          Clear Upload History?
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Are you absolutely sure?</DialogTitle>
+                          <DialogDescription>
+                            This action cannot be undone. All locally stored
+                            file references and content previews will be
+                            removed.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button type="button" variant="secondary">
+                              Cancel
+                            </Button>
+                          </DialogClose>
+                          <Button
+                            type="submit"
+                            variant="destructive"
+                            onClick={clearUploadHistory}
+                          >
+                            Clear History
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  {uploadHistory.length > 0 ? (
+                    <div className="grid gap-4">
+                      {uploadHistory.map((file) => {
+                        const FileIconComponent = getFileIcon(file.name);
+                        return (
+                          <div
+                            key={file.id}
+                            className="border rounded-md p-4 flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-4">
+                              {React.createElement(FileIconComponent, {className: "inline-block h-4 w-4 mr-2"})}
+                              <div>
+                                <p className="text-sm font-medium leading-none">
+                                  {file.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {(file.size / 1024).toFixed(1)} KB - Uploaded:{' '}
+                                  {new Date(
+                                    file.lastModified
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              onClick={() => loadFileFromHistory(file.id)}
+                            >
+                              Load
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
-                     {/* Add more settings here as needed */}
-                     {/* Example:
-                     <Separator />
-                     <div className="flex items-center justify-between">
-                        <Label htmlFor="setting-2">Another Setting</Label>
-                        <Input id="setting-2" placeholder="Value" className="max-w-xs"/>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No upload history found. Upload a file to get started.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Settings</CardTitle>
+                  <CardDescription>
+                    Customize application preferences.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Toggle between light and dark themes.
+                      </p>
                     </div>
+                    <Switch
+                      id="dark-mode"
+                      checked={darkMode}
+                      onCheckedChange={setDarkMode}
+                      aria-label="Toggle dark mode"
+                    />
+                  </div>
+                  {/* Add more settings here as needed */}
+                  {/* Example:
+                    
+                    
+                      Another Setting
+                      Value
+                    
                      */}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </main>
-
-        {/* Footer */}
-        <footer className="border-t px-4 py-3 text-center text-xs text-muted-foreground md:px-6"> {/* Restored */}
-          © {new Date().getFullYear()} DuinoLearn AI. All rights reserved.
-        </footer>
       </div>
     </TooltipProvider>
   );
 }
+
