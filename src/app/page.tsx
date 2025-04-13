@@ -291,7 +291,7 @@ export default function Home() {
           variant: 'destructive',
         });
         setUploadProgress(null);
-        setIsSummarizing(false);
+          setIsSummarizing(false);
       };
 
       reader.readAsText(file);
@@ -433,9 +433,30 @@ export default function Home() {
             </TabsList>
             <TabsContent value="upload" className="mt-0 h-full">
               {isExplanatoryUIEnabled && uploadedFile ? (
-                <div>
-                  {/* Render Exaplanatory UI here */}
-                  <p>This is where the explanatory UI will go for the uploaded file: {uploadedFile.name}</p>
+                <div className="flex flex-col items-center justify-center p-8">
+                  <h2 className="text-2xl font-bold mb-4">
+                    Explanatory UI for {uploadedFile.name}
+                  </h2>
+                  <p className="text-muted-foreground mb-4">
+                    This is where the explanatory UI will go for the uploaded file: {uploadedFile.name}.
+                    Imagine interactive sections, quizzes, and more!
+                  </p>
+                  <div className="w-full max-w-md">
+                    <Card>
+                      <CardContent>
+                        <p>
+                          This section will dynamically generate interactive components based on
+                          AI analysis of the uploaded document.
+                        </p>
+                        <ul className="list-disc list-inside mt-2">
+                          <li>Interactive quizzes</li>
+                          <li>Definition cards with animations</li>
+                          <li>Timeline-based content</li>
+                          <li>And more!</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               ) : (
               <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
