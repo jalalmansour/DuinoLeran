@@ -110,7 +110,7 @@ export default function Home() {
   const { toast } = useToast();
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
-
+  const [isExplanatoryUIEnabled, setIsExplanatoryUIEnabled] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle('dark', darkMode);
@@ -269,6 +269,7 @@ export default function Home() {
           setUploadProgress(100);
           await summarizeTheDocument(content);
           setTimeout(() => setUploadProgress(null), 500);
+          setIsExplanatoryUIEnabled(true);
 
         } catch (error: any) {
           console.error('Error processing file:', error);
@@ -422,6 +423,12 @@ export default function Home() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="upload" className="mt-0 h-full">
+              {isExplanatoryUIEnabled && uploadedFile ? (
+                <div>
+                  {/* Render Exaplanatory UI here */}
+                  <p>This is where the explanatory UI will go for the uploaded file: {uploadedFile.name}</p>
+                </div>
+              ) : (
               <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
                 {/* Upload Area */}
                 <Card className="flex-1 overflow-hidden">
@@ -506,7 +513,7 @@ export default function Home() {
                   </CardContent>
                 </Card>
               </div>
-
+               )}
               {/* Chat Section */}
               <Card className="mt-4">
                 <CardHeader>
