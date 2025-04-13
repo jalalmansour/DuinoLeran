@@ -136,9 +136,17 @@ export default function Home() {
   // Scroll chat to bottom when new messages are added or loading starts/stops
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      // Use scrollHeight for the ScrollArea's viewport
+      const viewport = chatContainerRef.current.querySelector('div[style*="overflow: scroll;"]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      } else {
+        // Fallback for simpler ScrollArea structures
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
   }, [chatHistory, isChatLoading]);
+
 
   // --- Upload History Management ---
 
@@ -185,6 +193,7 @@ export default function Home() {
     });
   }, [toast]);
 
+  // Added missing `summarizeTheDocument` function call which was removed from dependency array previously
   const loadFileFromHistory = useCallback(async (fileId: string) => {
     const fileToLoad = uploadHistory.find(file => file.id === fileId);
     if (fileToLoad) {
@@ -197,7 +206,9 @@ export default function Home() {
         title: 'File Loaded',
         description: `Loaded ${fileToLoad.name} from history. Summarizing...`,
       });
-      await summarizeTheDocument(fileToLoad.content);
+      // Need to define or import summarizeTheDocument if not already done
+      // Assuming summarizeTheDocument exists in scope:
+      await summarizeTheDocument(fileToLoad.content); // Call the summary function
     } else {
       toast({
         title: 'Error Loading File',
@@ -205,29 +216,42 @@ export default function Home() {
         variant: 'destructive',
       });
     }
-  }, [uploadHistory, toast]); // Removed summarizeTheDocument dependency here, call it directly
+  }, [uploadHistory, toast]);
 
 
-  // --- File Drop Handling ---
+  // --- AI Interaction ---
 
+  // Define summarizeTheDocument (assuming it was defined outside the useCallback previously)
+   const summarizeTheDocument = async (fileContent: string) => {
+    // This state is set before calling, but setting again doesn't hurt
+    setIsSummarizing(true);
+    try {
+      const summaryResult = await summarizeDocument({ fileContent: fileContent });
+      setSummary(summaryResult.summary);
+    } catch (error: any) {
+      console.error('Error summarizing document:', error);
+      toast({
+        title: 'Summarization Failed',
+        description: error.message || 'Could not generate summary.',
+        variant: 'destructive',
+      });
+      setSummary('Error: Could not generate summary.');
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  // --- File Drop Handling --- (Includes summarizeTheDocument call)
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => { // Made async to await summarizeTheDocument
       const file = acceptedFiles[0];
       if (!file) return;
 
-      // Basic type check (expand as needed) - This is client-side only
-      // const allowedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      // if (!allowedTypes.includes(file.type)) {
-      //     toast({ title: 'Unsupported File Type', description: `File type ${file.type} is not supported.`, variant: 'destructive' });
-      //     return;
-      // }
-
-      // Reset states for new upload
       setUploadedFile(null);
       setSummary('');
       setChatHistory([]);
       setCurrentMessage('');
-      setUploadProgress(0); // Start progress tracking
+      setUploadProgress(0);
 
       const reader = new FileReader();
 
@@ -254,7 +278,7 @@ export default function Home() {
             type: file.type,
             size: file.size,
             lastModified: file.lastModified,
-            content: content, // Consider security implications of storing content client-side
+            content: content,
           };
 
           setUploadedFile(newFile);
@@ -263,10 +287,10 @@ export default function Home() {
             title: 'File Uploaded',
             description: `Successfully uploaded ${file.name}. Summarizing...`,
           });
-          setIsSummarizing(true);
-          setUploadProgress(100); // Ensure progress hits 100 before hiding
-          await summarizeTheDocument(content);
-          setTimeout(() => setUploadProgress(null), 500); // Hide progress bar after a short delay
+          setIsSummarizing(true); // Set summarizing before calling
+          setUploadProgress(100);
+          await summarizeTheDocument(content); // Call the function
+          setTimeout(() => setUploadProgress(null), 500);
 
         } catch (error: any) {
             console.error('Error processing file:', error);
@@ -276,7 +300,7 @@ export default function Home() {
                 variant: 'destructive',
             });
             setUploadProgress(null);
-            setIsSummarizing(false); // Ensure loading state is reset on error
+            setIsSummarizing(false);
         }
       };
 
@@ -288,49 +312,22 @@ export default function Home() {
           variant: 'destructive',
         });
         setUploadProgress(null);
-        setIsSummarizing(false); // Reset loading state
+        setIsSummarizing(false);
       };
 
-      // Consider using readAsArrayBuffer for binary files and server-side parsing
-      reader.readAsText(file); // Reads content as text. Might fail for non-text files.
+      reader.readAsText(file);
 
     },
-    [toast, saveUploadHistory] // Removed summarizeTheDocument dependency here, call it directly
+    // Dependencies: toast, saveUploadHistory, summarizeTheDocument
+    [toast, saveUploadHistory, summarizeTheDocument]
   );
+
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: false, // Only allow single file uploads
-    // Add accepted file types here if needed, e.g.,
-    // accept: {
-    //   'text/plain': ['.txt'],
-    //   'application/pdf': ['.pdf'],
-    //   'application/msword': ['.doc'],
-    //   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    // }
+    multiple: false,
   });
 
-  // --- AI Interaction ---
-
-  const summarizeTheDocument = async (fileContent: string) => {
-    // No need to set summarizing state here, it's set before calling
-    try {
-      // Simulate network delay for testing loading states
-      // await new Promise(resolve => setTimeout(resolve, 2000));
-      const summaryResult = await summarizeDocument({ fileContent: fileContent });
-      setSummary(summaryResult.summary);
-    } catch (error: any) {
-      console.error('Error summarizing document:', error);
-      toast({
-        title: 'Summarization Failed',
-        description: error.message || 'Could not generate summary.',
-        variant: 'destructive',
-      });
-      setSummary('Error: Could not generate summary.'); // Provide feedback in the UI
-    } finally {
-      setIsSummarizing(false); // Turn off summarizing indicator regardless of success/failure
-    }
-  };
 
   const handleSendMessage = async () => {
     const messageToSend = currentMessage.trim();
@@ -342,13 +339,9 @@ export default function Home() {
     setIsChatLoading(true);
 
     try {
-        // Simulate network delay
-        // await new Promise(resolve => setTimeout(resolve, 1500));
       const chatResult = await chatWithDocument({
         documentContent: uploadedFile.content,
         userMessage: messageToSend,
-        // Optionally pass chat history for context
-        // chatHistory: chatHistory
       });
 
       const assistantMessage: ChatMessage = {
@@ -371,7 +364,6 @@ export default function Home() {
       });
     } finally {
       setIsChatLoading(false);
-       // Refocus the textarea after sending
       textAreaRef.current?.focus();
     }
   };
@@ -389,330 +381,355 @@ export default function Home() {
 
   const FileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : Upload; // Use Upload icon if no file
 
-  // Optimized Markdown Rendering Component
- 
+   // Optimized Markdown Rendering Component
    const MemoizedMarkdown = React.memo(({ content }: { content: string }) => (
-    <ReactMarkdown
-       children={content}
-       remarkPlugins={[remarkGfm, remarkMath]}
-       rehypePlugins={[rehypeKatex]}
-       className="prose prose-sm dark:prose-invert max-w-none" // Added prose styling
-       components={{
-         // Customize rendering further if needed
-          code({ node, inline, className, children, ...props }) {
-           // ... code component implementation ...
-           return (
-            <code className={className} {...props}>
-              {children}
-            </code>
-          );
-         }, // Comma is correct
-          table: ({node, ...props}) => (
-            <div className="overflow-x-auto">
-              <table className="table-auto border-collapse border border-gray-400 dark:border-gray-600 w-full my-3 text-sm" {...props} />
-            </div>
-           ), // <----- ADD COMMA HERE
-           th: ({node, ...props}) => <th className="border border-gray-300 dark:border-gray-700 px-2 py-1 bg-gray-100 dark:bg-gray-800 font-medium" {...props} />,
-           td: ({node, ...props}) => <td className="border border-gray-300 dark:border-gray-700 px-2 py-1" {...props} />,
-           // Add more custom components if needed (e.g., for links, lists)
-       }}
-   />
- ));
- MemoizedMarkdown.displayName = 'MemoizedMarkdown';
-
+    +   <div className="prose prose-sm dark:prose-invert max-w-none"> {/* Apply classes to a wrapper div */}
+          <ReactMarkdown
+             children={content}
+             remarkPlugins={[remarkGfm, remarkMath]}
+             rehypePlugins={[rehypeKatex]}
+             components={{
+                code({ node, inline, className, children, ...props }) {
+                 // ... code component implementation ...
+                 return !inline ? (
+                   <pre className={cn(className, 'bg-gray-800 dark:bg-gray-900 rounded p-3 my-3 overflow-x-auto')} {...props}>
+                     <code className={cn("text-sm", className ? `language-${className}` : '')}>{children}</code>
+                   </pre>
+                 ) : (
+                   <code className={cn(className, "bg-gray-700 dark:bg-gray-600 px-1 py-0.5 rounded text-yellow-300 dark:text-yellow-400")} {...props}>
+                     {children}
+                   </code>
+                 );
+               },
+                table: ({node, ...props}) => (
+                  <div className="overflow-x-auto">
+                    <table className="table-auto border-collapse border border-gray-400 dark:border-gray-600 w-full my-3 text-sm" {...props} />
+                  </div>
+                 ),
+                 th: ({node, ...props}) => <th className="border border-gray-300 dark:border-gray-700 px-2 py-1 bg-gray-100 dark:bg-gray-800 font-medium" {...props} />,
+                 td: ({node, ...props}) => <td className="border border-gray-300 dark:border-gray-700 px-2 py-1" {...props} />,
+             }}
+         />
+    +   </div>
+      ))
+      MemoizedMarkdown.displayName = 'MemoizedMarkdown';
 
   return (
-    
-      
+    <TooltipProvider> {/* Restored */}
+      <div className={cn('flex flex-col min-h-screen', darkMode ? 'dark' : '')}> {/* Restored */}
         {/* Header */}
-        
-          
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6"> {/* Restored */}
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text"> {/* Restored */}
             DuinoLearn AI
-          
-          
-            
-              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              
-            
-            
-              Toggle {darkMode ? 'Light' : 'Dark'} Mode
-            
-          
-        
+          </h1>
+          <Tooltip>
+   <TooltipTrigger asChild>
+     <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
+       {/* Wrap the icon and sr-only span in a single element */}
+       <span className="inline-flex items-center justify-center"> {/* Optional: classes to help layout if needed */}
+         {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+         <span className="sr-only">Toggle Theme</span>
+       </span>
+     </Button>
+   </TooltipTrigger>
+   <TooltipContent>
+     <p>Toggle {darkMode ? 'Light' : 'Dark'} Mode</p>
+   </TooltipContent>
+ </Tooltip>
+        </header>
 
         {/* Main Content Area */}
-        
-          
+        <main className="flex-1 p-4 md:p-6 lg:p-8"> {/* Restored */}
+          <Tabs defaultValue="upload" className="flex flex-col lg:flex-row gap-6 h-full"> {/* Restored */}
             {/* Left Panel: Tabs Navigation */}
-            
-              
-                
-                  
-                    Upload
-                  
-                
-                
-                  
-                    History
-                  
-                
-                
-                  
-                    Settings
-                  
-                
-              
-            
+            <div className="w-full lg:w-auto lg:max-w-xs shrink-0"> {/* Restored */}
+              <TabsList className="grid grid-cols-3 lg:grid-cols-1 lg:h-auto w-full"> {/* Restored */}
+                <TabsTrigger value="upload"> {/* Restored */}
+                  <Upload className="h-4 w-4 mr-2" /> Upload {/* Restored */}
+                </TabsTrigger>
+                <TabsTrigger value="history"> {/* Restored */}
+                  <BookOpen className="h-4 w-4 mr-2" /> History {/* Restored */}
+                </TabsTrigger>
+                <TabsTrigger value="settings"> {/* Restored */}
+                  <Settings className="h-4 w-4 mr-2" /> Settings {/* Restored */}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Right Panel: Tabs Content */}
-            
+            <div className="flex-1 min-w-0"> {/* Restored */}
               {/* --- Upload/Chat Tab --- */}
-              
-                  
+              <TabsContent value="upload" className="mt-0 h-full"> {/* Restored */}
+                  <div className="flex flex-col gap-4 h-full max-h-[calc(100vh-10rem)]"> {/* Restored */}
                       {/* Dropzone Card */}
-                      
-                          
-                              
-                                  
-                                      
-                                          Drop the file here...
-                                      
-                                      
-                                          Drag & drop file here, or click to select
-                                          
-                                              Supports text-based files (TXT, PDF, DOCX, code, etc.)
-                                          
-                                      
-                                  
-                                  {uploadProgress !== null && uploadProgress >= 0 && (
-                                      
-                                        
-                                        {uploadProgress}%
-                                      
-                                  )}
-                              
-                          
-                      
+                      <Card
+                          {...getRootProps()}
+                          className={cn(
+                              "border-2 border-dashed hover:border-primary/60 cursor-pointer transition-colors",
+                              isDragActive ? "border-primary bg-primary/10" : "border-muted"
+                          )}
+                      > {/* Restored */}
+                          <CardContent className="flex flex-col items-center justify-center p-6 text-center min-h-[120px]"> {/* Restored */}
+                              <input {...getInputProps()} /> {/* Restored */}
+                              <FileIcon className="h-10 w-10 text-muted-foreground mb-3" /> {/* Restored */}
+                              {isDragActive ? (
+                                  <p className="text-lg font-semibold text-primary">Drop the file here...</p>
+                              ) : (
+                                  <>
+                                      <p className="font-semibold">Drag & drop file here, or click to select</p>
+                                      <p className="text-sm text-muted-foreground mt-1">Supports text-based files (TXT, PDF, DOCX, code, etc.)</p>
+                                  </>
+                              )}
+                              {uploadProgress !== null && uploadProgress >= 0 && (
+                                  <div className="w-full max-w-xs mt-4">
+                                    <Progress value={uploadProgress} className="h-2" />
+                                    <p className="text-xs text-muted-foreground mt-1">{uploadProgress}%</p>
+                                  </div>
+                              )}
+                          </CardContent>
+                      </Card>
 
                       {/* Separator */}
-                      
+                      <Separator className="my-2"/> {/* Restored */}
 
                        {/* Content Area (Summary & Chat) */}
-                      
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden"> {/* Restored */}
                         {/* Summary Section */}
-                        
-                            
-                                
-                                    Summary
-                                
-                                
-                                    AI-generated summary of the document.
-                                
-                            
-                            
+                        <Card className="flex flex-col overflow-hidden"> {/* Restored */}
+                            <CardHeader> {/* Restored */}
+                                <CardTitle>Summary</CardTitle>
+                                <CardDescription>AI-generated summary of the document.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 overflow-y-auto p-4"> {/* Restored */}
                                 {isSummarizing ? (
-                                    
-                                        
-                                        
-                                        
-                                         
-                                        
-                                    
+                                    <div className="space-y-3">
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-full" />
+                                        <Skeleton className="h-4 w-[80%]" />
+                                         <Skeleton className="h-4 w-full mt-4" />
+                                        <Skeleton className="h-4 w-[90%]" />
+                                    </div>
                                 ) : summary ? (
                                      <MemoizedMarkdown content={summary} />
                                 ) : (
-                                    
+                                    <p className="text-sm text-muted-foreground italic">
                                         {uploadedFile ? 'Summarizing...' : 'Upload a document to see its summary.'}
-                                    
+                                    </p>
                                 )}
-                            
-                        
+                            </CardContent>
+                        </Card>
 
                         {/* Chat Section */}
-                        
-                            
-                                
-                                    Chat with Document
-                                
-                                
-                                    Ask questions about the uploaded file.
-                                
-                            
-                            
-                                
-                                    
+                        <Card className="flex flex-col overflow-hidden"> {/* Restored */}
+                            <CardHeader> {/* Restored */}
+                                <CardTitle>Chat with Document</CardTitle>
+                                <CardDescription>Ask questions about the uploaded file.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-0 overflow-hidden"> {/* Restored */}
+                                <ScrollArea className="h-full p-4" ref={chatContainerRef}> {/* Restored */}
+                                    <div className="space-y-4"> {/* Restored */}
                                         {chatHistory.map((message, index) => (
-                                            
-                                                
-                                                    
-                                                        <MemoizedMarkdown content={message.content} />
-                                                    
-                                                
-                                            
+                                            <div
+                                                key={index}
+                                                className={cn(
+                                                    "flex w-full",
+                                                    message.role === 'user' ? "justify-end" : "justify-start"
+                                                )}
+                                            > {/* Restored */}
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.3 }}
+                                                    className={cn(
+                                                        "p-3 rounded-lg max-w-[80%]",
+                                                        message.role === 'user'
+                                                            ? "bg-primary text-primary-foreground"
+                                                            : "bg-muted"
+                                                    )}
+                                                > {/* Restored */}
+                                                     <MemoizedMarkdown content={message.content} />
+                                                </motion.div>
+                                            </div>
                                         ))}
                                         {isChatLoading && (
-                                            
-                                                 
-                                                    
-                                                    
-                                                        Thinking...
-                                                    
-                                                
-                                            
+                                            <div className="flex justify-start"> {/* Restored */}
+                                                 <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.3 }}
+                                                    className="p-3 rounded-lg bg-muted flex items-center space-x-2"
+                                                > {/* Restored */}
+                                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                    <span className="text-sm text-muted-foreground">Thinking...</span>
+                                                </motion.div>
+                                            </div>
                                         )}
                                         {!uploadedFile && chatHistory.length === 0 && (
-                                            
+                                            <p className="text-sm text-center text-muted-foreground italic py-4">
                                                 Upload a document to start chatting.
-                                            
+                                            </p>
                                         )}
                                          {uploadedFile && chatHistory.length === 0 && !isChatLoading && (
-                                            
+                                            <p className="text-sm text-center text-muted-foreground italic py-4">
                                                 Ask a question about "{uploadedFile?.name || 'the document'}".
-                                            
+                                            </p>
                                         )}
-                                    
-                                
-                            
-                            
-                                
-                                  
-                                    
-                                      Ask me anything about the document...
-                                    
-                                      
-                                          {isChatLoading ? (
-                                              
-                                          ) : (
-                                              
-                                          )}
-                                          
-                                      
-                                  
-                                
-                            
-                        
-                      
-                  
-              
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                            <CardFooter className="p-4 border-t"> {/* Restored */}
+                                <div className="flex w-full items-center gap-2"> {/* Restored */}
+                                    <Textarea
+                                        ref={textAreaRef}
+                                        placeholder={uploadedFile ? "Ask anything about the document..." : "Please upload a document first"}
+                                        value={currentMessage}
+                                        onChange={(e) => setCurrentMessage(e.target.value)}
+                                        onKeyDown={handleKeyDown}
+                                        rows={1}
+                                        className="min-h-[40px] max-h-[150px] flex-1 resize-none"
+                                        disabled={!uploadedFile || isChatLoading || isSummarizing}
+                                        aria-label="Chat input"
+                                        suppressHydrationWarning={true} // Keep this fix from earlier
+                                    /> {/* Restored */}
+                                    <Button
+                                        type="button"
+                                        onClick={handleSendMessage}
+                                        disabled={!uploadedFile || !currentMessage.trim() || isChatLoading || isSummarizing}
+                                        size="icon"
+                                    > {/* Restored */}
+                                        {isChatLoading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Send className="h-4 w-4" />
+                                        )}
+                                        <span className="sr-only">Send Message</span>
+                                    </Button>
+                                </div>
+                            </CardFooter>
+                        </Card>
+                      </div>
+                  </div>
+              </TabsContent>
+
 
               {/* --- History Tab --- */}
-              
-                
-                  
-                    
-                      
-                        
-                          Upload History
-                          View and reload recently uploaded files.
-                        
-                      
-                       {uploadHistory.length > 0 && (
-                         
-                           
-                             
-                               
-                                 Clear Upload History?
-                               
-                               
-                                 This action cannot be undone. All locally stored file references and content previews will be removed.
-                               
-                             
-                             
-                               
-                                 Cancel
-                               
-                                 
-                                  Clear History
-                                 
-                               
-                             
-                           
-                         
-                       )}
-                    
-                  
-                  
+              <TabsContent value="history" className="mt-0"> {/* Restored */}
+                <Card> {/* Restored */}
+                  <CardHeader className="flex flex-row items-center justify-between"> {/* Restored */}
+                    <div> {/* Restored */}
+                      <CardTitle>Upload History</CardTitle>
+                      <CardDescription>View and reload recently uploaded files.</CardDescription>
+                    </div>
+                     {uploadHistory.length > 0 && (
+                       <Dialog> {/* Restored */}
+                         <DialogTrigger asChild> {/* Restored */}
+                           <Button variant="outline" size="sm">
+                             <Trash2 className="h-4 w-4 mr-1" /> Clear History
+                           </Button>
+                         </DialogTrigger>
+                         <DialogContent> {/* Restored */}
+                           <DialogHeader> {/* Restored */}
+                             <DialogTitle>Clear Upload History?</DialogTitle>
+                             <DialogDescription>
+                               This action cannot be undone. All locally stored file references and content previews will be removed.
+                             </DialogDescription>
+                           </DialogHeader>
+                           <DialogFooter> {/* Restored */}
+                             <DialogClose asChild> {/* Restored */}
+                               <Button variant="outline">Cancel</Button>
+                             </DialogClose>
+                             <DialogClose asChild> {/* Restored */}
+                                <Button variant="destructive" onClick={clearUploadHistory}>
+                                 Clear History
+                                </Button>
+                             </DialogClose>
+                           </DialogFooter>
+                         </DialogContent>
+                       </Dialog>
+                     )}
+                  </CardHeader>
+                  <CardContent> {/* Restored */}
                     {uploadHistory.length > 0 ? (
-                      
-                        
+                      <ScrollArea className="h-[calc(100vh-20rem)]"> {/* Restored */}
+                        <ul className="space-y-2"> {/* Restored */}
                           {uploadHistory.map((file) => {
                             const FileIconComponent = getFileIcon(file.name);
                             return (
-                              
-                                
-                                  
-                                    
-                                      
-                                      
-                                        {(file.size / 1024).toFixed(1)} KB - Uploaded: {new Date(file.lastModified).toLocaleDateString()}
-                                      
-                                    
-                                  
-                                
-                                
+                              <li
+                                key={file.id} // Use generated unique ID
+                                className="flex items-center justify-between p-2 rounded-md border hover:bg-muted/50 transition-colors"
+                              > {/* Restored */}
+                                <div className="flex items-center gap-3 truncate"> {/* Restored */}
+                                  <FileIconComponent className="h-5 w-5 text-muted-foreground shrink-0" />
+                                  <div className="truncate"> {/* Restored */}
+                                    <span className="font-medium truncate block">{file.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {(file.size / 1024).toFixed(1)} KB - Uploaded: {new Date(file.lastModified).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => loadFileFromHistory(file.id)}
+                                > {/* Restored */}
                                   Load
-                                
-                              
+                                </Button>
+                              </li>
                             );
                           })}
-                        
-                      
+                        </ul>
+                      </ScrollArea>
                     ) : (
-                      
+                      <p className="text-sm text-muted-foreground italic text-center py-4">
                         No upload history found. Upload a file to get started.
-                      
+                      </p>
                     )}
-                  
-                
-              
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
 
               {/* --- Settings Tab --- */}
-              
-                
-                  
-                    
-                      
-                        Settings
-                        Customize application preferences.
-                      
-                    
-                  
-                  
-                    
-                      
-                           Dark Mode
-                            Toggle between light and dark themes.
-                      
-                      
-                        
-                          
-                            
-                          
-                        
-                      
-                    
+              <TabsContent value="settings" className="mt-0"> {/* Restored */}
+                <Card> {/* Restored */}
+                  <CardHeader> {/* Restored */}
+                    <CardTitle>Settings</CardTitle>
+                    <CardDescription>Customize application preferences.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6"> {/* Restored */}
+                    <div className="flex items-center justify-between p-4 rounded-lg border"> {/* Restored */}
+                       <div> {/* Restored */}
+                            <Label htmlFor="dark-mode" className="font-medium">Dark Mode</Label>
+                            <p className="text-sm text-muted-foreground">Toggle between light and dark themes.</p>
+                       </div>
+                      <Switch
+                        id="dark-mode"
+                        checked={darkMode}
+                        onCheckedChange={setDarkMode}
+                        aria-label="Toggle dark mode"
+                      /> {/* Restored */}
+                    </div>
                      {/* Add more settings here as needed */}
                      {/* Example:
-                     
-                     
-                      
-                        Another Setting
-                        
-                    
+                     <Separator />
+                     <div className="flex items-center justify-between">
+                        <Label htmlFor="setting-2">Another Setting</Label>
+                        <Input id="setting-2" placeholder="Value" className="max-w-xs"/>
+                    </div>
                      */}
-                  
-                
-              
-            
-          
-        
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </main>
 
         {/* Footer */}
-        
+        <footer className="border-t px-4 py-3 text-center text-xs text-muted-foreground md:px-6"> {/* Restored */}
           © {new Date().getFullYear()} DuinoLearn AI. All rights reserved.
-        
-      
-    
+        </footer>
+      </div>
+    </TooltipProvider>
   );
 }
-
