@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {useDropzone} from 'react-dropzone';
 import {motion} from 'framer-motion';
 import {File, MessageSquare, Upload, Sun, Moon, Settings, Trash2, ImageIcon, Code, BookOpen} from 'lucide-react';
@@ -24,6 +24,7 @@ import {Label} from '@/components/ui/label';
 import {Separator} from '@/components/ui/separator';
 import {Tabs, TabsList, TabsTrigger, TabsContent} from "@/components/ui/tabs"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip"
+import {cn} from "@/lib/utils";
 
 interface UploadedFile {
   name: string;
@@ -76,6 +77,7 @@ export default function Home() {
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
   const {toast} = useToast();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.body.classList.toggle('dark', darkMode);
@@ -125,7 +127,7 @@ export default function Home() {
         reader.readAsText(file);
       }
     },
-    [toast]
+    [toast, saveUploadHistory, summarizeDocument]
   );
 
   const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
@@ -165,6 +167,11 @@ export default function Home() {
           content: chatResult.response,
         };
         setChatHistory((prev) => [...prev, assistantMessage]);
+
+        // Scroll to the bottom of the chat interface
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
       } catch (error: any) {
         toast({
           title: 'Error Chatting',
@@ -248,27 +255,35 @@ export default function Home() {
 
             {uploadedFile && (
               <div className="mt-4">
-                <Textarea
-                  placeholder="Ask me anything about the document..."
-                  value={currentMessage}
-                  onChange={(e) => setCurrentMessage(e.target.value)}
-                  className="mb-2"
-                />
-                <Button onClick={handleSendMessage} disabled={isLoading}>
-                  {isLoading ? 'Sending...' : 'Send'}
-                </Button>
-
-                <div className="mt-4">
-                  {chatHistory.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`mb-2 p-3 rounded-md ${
-                        message.role === 'user' ? 'bg-primary/10 text-right' : 'bg-secondary/10 text-left'
-                      }`}
-                    >
-                      {message.content}
+                <div className="flex flex-col">
+                  <div
+                    ref={chatContainerRef}
+                    className="mb-2 p-4 rounded-md bg-muted text-sm overflow-y-auto max-h-64"
+                  >
+                    {chatHistory.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`mb-2 p-3 rounded-md ${
+                          message.role === 'user' ? 'bg-primary/10 text-right' : 'bg-secondary/10 text-left'
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="sticky bottom-0 bg-background/70 backdrop-blur-md p-3 rounded-md">
+                    <div className="flex items-center space-x-2">
+                      <Textarea
+                        placeholder="Ask me anything about the document..."
+                        value={currentMessage}
+                        onChange={(e) => setCurrentMessage(e.target.value)}
+                        className="flex-grow"
+                      />
+                      <Button onClick={handleSendMessage} disabled={isLoading}>
+                        {isLoading ? 'Sending...' : 'Send'}
+                      </Button>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             )}
