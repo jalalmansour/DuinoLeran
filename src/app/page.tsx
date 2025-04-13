@@ -3,7 +3,7 @@
 import {useState, useCallback, useEffect} from 'react';
 import {useDropzone} from 'react-dropzone';
 import {motion} from 'framer-motion';
-import {File, MessageSquare, Upload, Sun, Moon, Settings, Trash2} from 'lucide-react';
+import {File, MessageSquare, Upload, Sun, Moon, Settings, Trash2, ImageIcon, Code, BookOpen} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {summarizeDocument} from '@/ai/flows/summarize-document';
 import {chatWithDocument} from '@/ai/flows/chat-with-document';
@@ -37,6 +37,17 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
+
+const getFileIcon = (fileType: string) => {
+  if (fileType.startsWith('image')) {
+    return ImageIcon;
+  } else if (fileType.includes('code')) {
+    return Code;
+  } else if (fileType.includes('pdf') || fileType.includes('text') || fileType.includes('word')) {
+    return BookOpen;
+  }
+  return File;
+};
 
 export default function Home() {
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
@@ -149,6 +160,8 @@ export default function Home() {
     }
   };
 
+  const fileIcon = uploadedFile ? getFileIcon(uploadedFile.type) : File;
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 bg-background/70 backdrop-blur-md z-10 p-4 border-b border-border">
@@ -197,7 +210,7 @@ export default function Home() {
                   animate={{opacity: 1, x: 0}}
                   transition={{duration: 0.3}}
                 >
-                  <File className="inline-block h-4 w-4 mr-2" />
+                  {React.createElement(fileIcon, {className: "inline-block h-4 w-4 mr-2"})}
                   {uploadedFile.name}
                 </motion.div>
               )}
@@ -246,7 +259,9 @@ export default function Home() {
           <TabsContent value="history" className="outline-none">
             <div className="flex flex-col gap-2">
               {uploadHistory.length > 0 ? (
-                uploadHistory.map((file, index) => (
+                uploadHistory.map((file, index) => {
+                   const FileIconComponent = getFileIcon(file.type);
+                  return (
                   <motion.div
                     key={index}
                     className="p-4 rounded-md bg-muted text-sm flex items-center justify-between"
@@ -255,14 +270,15 @@ export default function Home() {
                     transition={{duration: 0.3, delay: index * 0.1}}
                   >
                     <div>
-                      <File className="inline-block h-4 w-4 mr-2" />
+                      {React.createElement(FileIconComponent, {className: "inline-block h-4 w-4 mr-2"})}
                       {file.name}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {new Date(file.lastModified).toLocaleDateString()}
                     </span>
                   </motion.div>
-                ))
+                )
+                })
               ) : (
                 <p>No upload history available.</p>
               )}
