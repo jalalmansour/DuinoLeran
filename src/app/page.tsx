@@ -18,7 +18,7 @@ import {
 import {Button} from '@/components/ui/button';
 import {Textarea} from '@/components/ui/textarea';
 import {Input} from '@/components/ui/input';
-import {Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogCancel,DialogAction} from '@/components/ui/dialog';
+import {Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose} from '@/components/ui/dialog';
 import {Switch} from '@/components/ui/switch';
 import {Label} from '@/components/ui/label';
 import {Separator} from '@/components/ui/separator';
@@ -285,16 +285,12 @@ export default function Home() {
                     </DialogHeader>
                     <DialogFooter>
                       
-                      <DialogCancel asChild>
-                        <Button variant="secondary" type="button">
+                      <Button variant="secondary" type="button">
                           Cancel
                         </Button>
-                      </DialogCancel>
-                       <DialogAction asChild>
-                        <Button variant="destructive" onClick={clearUploadHistory}>
+                       <Button variant="destructive" onClick={clearUploadHistory}>
                           Delete
                         </Button>
-                      </DialogAction>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -327,3 +323,5 @@ export default function Home() {
     </div>
   );
 }
+
+
