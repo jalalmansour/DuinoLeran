@@ -432,35 +432,8 @@ export default function Home() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="upload" className="mt-0 h-full">
-              {isExplanatoryUIEnabled && uploadedFile ? (
-                <div className="flex flex-col items-center justify-center p-8">
-                  <h2 className="text-2xl font-bold mb-4">
-                    Explanatory UI for {uploadedFile.name}
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    This is where the explanatory UI will go for the uploaded file: {uploadedFile.name}.
-                    Imagine interactive sections, quizzes, and more!
-                  </p>
-                  <div className="w-full max-w-md">
-                    <Card>
-                      <CardContent>
-                        <p>
-                          This section will dynamically generate interactive components based on
-                          AI analysis of the uploaded document.
-                        </p>
-                        <ul className="list-disc list-inside mt-2">
-                          <li>Interactive quizzes</li>
-                          <li>Definition cards with animations</li>
-                          <li>Timeline-based content</li>
-                          <li>And more!</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              ) : (
+              {/* Upload Area */}
               <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                {/* Upload Area */}
                 <Card className="flex-1 overflow-hidden">
                   <div
                     {...getRootProps()}
@@ -497,12 +470,12 @@ export default function Home() {
                   </div>
                 </Card>
 
-                {/* Summary Section */}
+                {/* Summary and Explanatory UI Section */}
                 <Card className="flex flex-col overflow-hidden">
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      Summary
-                      {summary && (
+                      Summary &amp; Explanatory UI
+                      {uploadedFile && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -520,7 +493,7 @@ export default function Home() {
                       )}
                     </CardTitle>
                     <CardDescription>
-                      AI-generated summary of the document.
+                      AI-generated summary and interactive explanations of the document.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className={cn(isSummaryCollapsed ? 'h-0' : 'h-auto', 'overflow-hidden transition-all duration-300')}>
@@ -528,22 +501,55 @@ export default function Home() {
                       <div className="flex items-center space-x-2">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         <p className="text-sm text-muted-foreground">
-                          Summarizing...
+                          Summarizing &amp; Generating UI...
                         </p>
                       </div>
-                    ) : summary ? (
-                      <MemoizedMarkdown content={summary} />
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {uploadedFile
-                          ? 'Summarizing...'
-                          : 'Upload a document to see its summary.'}
-                      </p>
+                      <>
+                        {summary ? (
+                          <>
+                            <h3 className="text-lg font-semibold mb-2">Document Summary</h3>
+                            <MemoizedMarkdown content={summary} />
+
+                            {isExplanatoryUIEnabled && uploadedFile ? (
+                              <div className="mt-4">
+                                <h3 className="text-lg font-semibold mb-2">Interactive Explanations</h3>
+                                <p className="text-muted-foreground mb-4">
+                                  This section features an interactive UI dynamically generated to explain the document: {uploadedFile.name}.
+                                </p>
+                                {/* Add interactive components here */}
+                                <div className="w-full max-w-md">
+                                  <Card>
+                                    <CardContent>
+                                      <p>
+                                        This section will dynamically generate interactive components based on
+                                        AI analysis of the uploaded document.
+                                      </p>
+                                      <ul className="list-disc list-inside mt-2">
+                                        <li>Interactive quizzes</li>
+                                        <li>Definition cards with animations</li>
+                                        <li>Timeline-based content</li>
+                                        <li>And more!</li>
+                                      </ul>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+                              </div>
+                            ) : null}
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {uploadedFile
+                              ? 'Summarizing and generating interactive UI...'
+                              : 'Upload a document to see its summary and interactive explanations.'}
+                          </p>
+                        )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
               </div>
-               )}
+
               {/* Chat Section */}
               <Card className="mt-4">
                 <CardHeader>
@@ -748,4 +754,3 @@ export default function Home() {
     </TooltipProvider>
   );
 }
-
