@@ -1,25 +1,24 @@
-'use client';
+"use client";
 
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"; 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { motion } from 'framer-motion';
+import { useDropzone, FileRejection } from 'react-dropzone';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   File as FileIconLucide,
-  MessageSquare,
   Upload,
-  Sun,
-  Moon,
-  Settings,
-  Trash2,
   ImageIcon,
   Code,
   BookOpen,
   Loader2,
   Send,
-  X,
+  Lightbulb,
   ChevronsDown,
   ChevronsUp,
-  Lightbulb,
+  Trophy,
+  Download,
+  Wand2,
+  Rocket,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { summarizeDocument } from '@/ai/flows/summarize-document';
@@ -30,11 +29,9 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogTrigger,
@@ -47,7 +44,6 @@ import {
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Tooltip,
@@ -58,13 +54,17 @@ import {
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
+import FAQPage from './faq';
+import Footer from '../components/footer';
 
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import 'katex/dist/katex.min.css';
+
+import Header from '@/components/header';
+
 
 interface UploadedFile {
   id: string;
@@ -80,7 +80,7 @@ interface ChatMessage {
   content: string;
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 15);
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 
 const getFileIcon = (fileName: string): React.ElementType => {
   const fileExtension = fileName.split('.').pop()?.toLowerCase();
@@ -88,8 +88,8 @@ const getFileIcon = (fileName: string): React.ElementType => {
     case 'pdf': return BookOpen;
     case 'docx': case 'doc': return FileIconLucide;
     case 'pptx': case 'ppt': return FileIconLucide;
-    case 'txt': return FileIconLucide;
-    case 'py': case 'js': case 'jsx': case 'ts': case 'tsx': case 'html': case 'css': case 'json': case 'md': return Code;
+    case 'txt': case 'md': return FileIconLucide;
+    case 'py': case 'js': case 'jsx': case 'ts': case 'tsx': case 'html': case 'css': case 'json': case 'xml': case 'java': case 'c': case 'cpp': return Code;
     case 'jpg': case 'jpeg': case 'png': case 'gif': case 'svg': case 'webp': return ImageIcon;
     default: return FileIconLucide;
   }
@@ -106,15 +106,20 @@ export default function Home() {
   const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"upload" | "history" | "settings">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "history" | "settings" | "faq">("upload");
+  const [xp, setXp] = useState<number>(0);
+  const [isExplanatoryUIEnabled, setIsExplanatoryUIEnabled] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'txt' | 'md' | 'pdf'>('txt');
+
 
   const { toast } = useToast();
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const [isExplanatoryUIEnabled, setIsExplanatoryUIEnabled] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle('dark', darkMode);
+    document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
   }, [darkMode]);
 
   useEffect(() => {
@@ -123,20 +128,29 @@ export default function Home() {
       if (storedHistory) {
         setUploadHistory(JSON.parse(storedHistory));
       }
+      const storedXp = localStorage.getItem('userXp');
+      if (storedXp) {
+        setXp(parseInt(storedXp, 10) || 0);
+      }
     } catch (error) {
-      console.error('Failed to parse upload history:', error);
-      localStorage.removeItem('uploadHistory');
+      console.error('Failed to load data from localStorage:', error);
     }
   }, []);
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      const viewport = chatContainerRef.current.querySelector('div[style*="overflow: scroll;"]');
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      } else {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-      }
+    localStorage.setItem('userXp', xp.toString());
+  }, [xp]);
+
+  useEffect(() => {
+    const chatViewport = chatContainerRef.current?.querySelector<HTMLDivElement>('div[style*="overflow: scroll;"]');
+    if (chatViewport) {
+      requestAnimationFrame(() => {
+        chatViewport.scrollTop = chatViewport.scrollHeight;
+      });
+    } else if (chatContainerRef.current) {
+        requestAnimationFrame(() => {
+            chatContainerRef.current!.scrollTop = chatContainerRef.current!.scrollHeight;
+        });
     }
   }, [chatHistory, isChatLoading]);
 
@@ -146,22 +160,22 @@ export default function Home() {
         (item) => item.name === file.name && item.lastModified === file.lastModified
       );
       if (exists) return prevHistory;
-
-      const newHistory = [file, ...prevHistory].slice(0, 10);
+      const historyEntry = { ...file };
+      const newHistory = [historyEntry, ...prevHistory].slice(0, 10);
       try {
         localStorage.setItem('uploadHistory', JSON.stringify(newHistory));
       } catch (error: any) {
         if (error.name === 'QuotaExceededError') {
           toast({
             title: 'Storage Full',
-            description: 'Local storage quota exceeded. Please clear history or upload smaller files.',
+            description: 'Cannot save to history. Local storage quota exceeded. Try clearing history.',
             variant: 'warning',
           });
         } else {
           console.error('Failed to save upload history:', error);
           toast({
             title: 'Error Saving History',
-            description: 'Could not save to upload history. Local storage might be unavailable.',
+            description: 'Could not save to upload history.',
             variant: 'warning',
           });
         }
@@ -180,20 +194,57 @@ export default function Home() {
     });
   }, [toast]);
 
+  const summarizeTheDocument = useCallback(async (textContent: string, fileName: string) => {
+    if (typeof textContent !== 'string' || !textContent.trim()) {
+        setSummary('Cannot summarize non-text or empty content.');
+        setIsSummarizing(false);
+        return;
+    }
+    setIsSummarizing(true);
+    setSummary('');
+    try {
+      const summaryResult = await summarizeDocument({ fileContent: textContent });
+      setSummary(summaryResult.summary);
+      setXp(prevXp => prevXp + 10);
+      toast({
+        title: 'Summary Ready',
+        description: `Generated summary for ${fileName}.`,
+      });
+    } catch (error: any) {
+      console.error('Error summarizing document:', error);
+      const errorMessage = error?.message || 'Could not generate summary.';
+      setSummary(`Error: ${errorMessage}`);
+      toast({
+        title: 'Summarization Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSummarizing(false);
+    }
+  }, [toast, setXp]); // Include setXp dependency
+
   const loadFileFromHistory = useCallback(async (fileId: string) => {
     const fileToLoad = uploadHistory.find(file => file.id === fileId);
     if (fileToLoad) {
+      if (!fileToLoad.content || typeof fileToLoad.content !== 'string') {
+        toast({
+            title: 'Content Issue',
+            description: `Text content for ${fileToLoad.name} is missing or invalid in history. Please re-upload.`,
+            variant: 'warning',
+        });
+        return;
+      }
       setUploadedFile(fileToLoad);
-      setSummary('');
       setChatHistory([]);
       setCurrentMessage('');
-      setIsSummarizing(true);
+      setIsExplanatoryUIEnabled(false);
+      setActiveTab("upload");
       toast({
         title: 'File Loaded',
-        description: `Loaded ${fileToLoad.name} from history. Summarizing...`,
+        description: `Loaded ${fileToLoad.name}. Summarizing...`,
       });
-      summarizeTheDocument(fileToLoad.content);
-      setActiveTab("upload"); // Switch to upload tab
+      await summarizeTheDocument(fileToLoad.content, fileToLoad.name);
     } else {
       toast({
         title: 'Error Loading File',
@@ -201,25 +252,7 @@ export default function Home() {
         variant: 'destructive',
       });
     }
-  }, [uploadHistory, toast, setActiveTab]);
-
-  const summarizeTheDocument = async (fileContent: string) => {
-    setIsSummarizing(true);
-    try {
-      const summaryResult = await summarizeDocument({ fileContent: fileContent });
-      setSummary(summaryResult.summary);
-    } catch (error: any) {
-      console.error('Error summarizing document:', error);
-      toast({
-        title: 'Summarization Failed',
-        description: error.message || 'Could not generate summary.',
-        variant: 'destructive',
-      });
-      setSummary('Error: Could not generate summary.');
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
+  }, [uploadHistory, toast, setActiveTab, summarizeTheDocument]); // Removed state setters not strictly needed for deps
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -231,112 +264,229 @@ export default function Home() {
       setChatHistory([]);
       setCurrentMessage('');
       setUploadProgress(0);
+      setIsExplanatoryUIEnabled(false);
+      setIsSummarizing(true);
 
-      const reader = new FileReader();
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+         toast({ title: 'File Too Large', description: `Max size is ${maxSize / 1024 / 1024}MB.`, variant: 'destructive' });
+         setUploadProgress(null);
+         setIsSummarizing(false);
+         return;
+      }
 
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(progress);
-        }
-      };
-
-      reader.onloadstart = () => {
-        setUploadProgress(0);
-      };
-
-      reader.onload = async (e) => {
+      // Define a shared function to handle successful text extraction
+      const handleTextExtracted = async (textContent: string, originalFile: File) => {
         try {
-          const content = e.target?.result as string;
-          if (typeof content !== 'string') {
-            throw new Error('Failed to read file content as text.');
-          }
-          const newFile: UploadedFile = {
-            id: generateId(),
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            lastModified: file.lastModified,
-            content: content,
-          };
+            const newFile: UploadedFile = {
+              id: generateId(),
+              name: originalFile.name,
+              type: originalFile.type,
+              size: originalFile.size,
+              lastModified: originalFile.lastModified,
+              content: textContent,
+            };
 
-          setUploadedFile(newFile);
-          saveUploadHistory(newFile);
-          toast({
-            title: 'File Uploaded',
-            description: `Successfully uploaded ${file.name}. Summarizing...`,
-          });
-          setIsSummarizing(true);
-          setUploadProgress(100);
-          await summarizeTheDocument(content);
-          setTimeout(() => setUploadProgress(null), 500);
-          setIsExplanatoryUIEnabled(true);
-
+            setUploadedFile(newFile);
+            saveUploadHistory(newFile);
+            setUploadProgress(100); // Indicate processing is done before summarization
+            await summarizeTheDocument(textContent, newFile.name);
+            setTimeout(() => setUploadProgress(null), 600);
+            setIsExplanatoryUIEnabled(true);
         } catch (error: any) {
-          console.error('Error processing file:', error);
-          toast({
-            title: 'Error Processing File',
-            description: error.message || 'Could not process the uploaded file.',
-            variant: 'destructive',
-          });
-          setUploadProgress(null);
-          setIsSummarizing(false);
+            console.error('Error after text extraction:', error);
+            toast({ title: 'Processing Error', description: 'Failed to process extracted text.', variant: 'destructive' });
+            setUploadProgress(null);
+            setIsSummarizing(false);
+            setUploadedFile(null);
         }
       };
 
-      reader.onerror = (error) => {
-        console.error('FileReader Error:', error);
-        toast({
-          title: 'Error Reading File',
-          description: 'Could not read the selected file.',
-          variant: 'destructive',
-        });
-        setUploadProgress(null);
-          setIsSummarizing(false);
+      // Define a shared error handler for file reading/processing
+      const handleProcessingError = (error: any, message: string) => {
+         console.error(message, error);
+         toast({ title: 'File Processing Error', description: error?.message || message, variant: 'destructive' });
+         setUploadProgress(null);
+         setIsSummarizing(false);
+         setUploadedFile(null);
       };
 
-      reader.readAsText(file);
 
+      try {
+          setUploadProgress(10); // Initial progress update
+
+          if (file.type === 'application/pdf') {
+            // --- PDF Handling ---
+            const pdfFileReader = new FileReader();
+
+            // Import pdfjsLib and set worker source only on client-side
+            let pdfjsLib: typeof import('pdfjs-dist') | null = null;
+            if (typeof window !== 'undefined') {
+                try {
+                    pdfjsLib = await import('pdfjs-dist');
+                    if (pdfjsLib) {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.js`; // Assumes worker is in public folder root
+                    }
+                } catch (error) {
+                    console.error('Failed to load pdfjs-dist:', error);
+                    handleProcessingError(error, 'Failed to load PDF library.');
+                }
+            }
+
+            pdfFileReader.onload = async (event) => {
+              try {
+                if (!event.target?.result) throw new Error("Failed to read PDF file.");
+                setUploadProgress(30); // Update progress
+                const typedArray = new Uint8Array(event.target.result as ArrayBuffer);
+                const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+                setUploadProgress(50); // Update progress
+                const numPages = pdf.numPages;
+                let textContent = '';
+                const pagePromises = [];
+
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                  pagePromises.push(
+                    pdf.getPage(pageNum).then(async (page) => {
+                      const text = await page.getTextContent();
+                      // Basic text joining, consider adding spaces or newlines if needed
+                      return text.items.map((item: any) => item.str).join(' ');
+                    })
+                  );
+                }
+
+                const pageTexts = await Promise.all(pagePromises);
+                textContent = pageTexts.join('\n\n'); // Add double newline between pages
+                setUploadProgress(80); // Update progress
+
+                await handleTextExtracted(textContent, file); // Process extracted text
+
+              } catch (pdfError: any) {
+                 handleProcessingError(pdfError, 'Could not process PDF content.');
+              }
+            };
+
+            pdfFileReader.onerror = (errorEvent) => {
+              handleProcessingError(errorEvent, 'Error reading PDF file.');
+            };
+
+            // Track reader progress if needed (though ArrayBuffer reading is fast)
+            // pdfFileReader.onprogress = ...
+
+            pdfFileReader.readAsArrayBuffer(file); // Read PDF as ArrayBuffer
+
+          } else if (file.type.startsWith('text/') || file.type === 'application/json' || file.type === 'application/xml' || file.type === 'application/javascript' || file.type === 'application/python' ) {
+          } else if ((file.type === '' && file.name.endsWith('.py')) || file.type.startsWith('text/') || file.type === 'application/json' || file.type === 'application/xml' || file.type === 'application/javascript' || file.type === 'application/python') {
+           // --- Text-based File Handling ---
+            const textFileReader = new FileReader();
+
+            textFileReader.onprogress = (event) => {
+              if (event.lengthComputable) {
+                // Adjust progress based on text reading progress (e.g., 10% to 80%)
+                setUploadProgress(10 + Math.round((event.loaded / event.total) * 70));
+              }
+            };
+
+            textFileReader.onloadstart = () => setUploadProgress(10);
+
+            textFileReader.onload = async (e) => {
+              try {
+                const content = e.target?.result;
+                if (typeof content !== 'string') {
+                  throw new Error('Failed to read file content as text.');
+                }
+                await handleTextExtracted(content, file); // Process extracted text
+              } catch (textError: any) {
+                 handleProcessingError(textError, 'Could not process text file content.');
+              }
+            };
+
+            textFileReader.onerror = (errorEvent) => {
+                handleProcessingError(errorEvent, 'Error reading text file.');
+            };
+
+            textFileReader.readAsText(file); // Read as text
+
+          } else {
+             // --- Unsupported File Type ---
+             // Note: Dropzone's `accept` should prevent this, but handle defensively.
+             throw new Error(`Unsupported file type: ${(file as any).name || 'Unknown File'} -  ${file.type || 'unknown'}`);
+          }
+
+      } catch (error: any) {
+          handleProcessingError(error, 'An unexpected error occurred during file handling.');
+      }
     },
-    [toast, saveUploadHistory, summarizeTheDocument]
+    [toast, saveUploadHistory, summarizeTheDocument] // Dependencies updated
   );
+
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
+    accept: {
+        'text/plain': ['.txt'],
+        'text/markdown': ['.md'],
+        'text/csv': ['.csv'],
+        'text/html': ['.html', '.htm'],
+        'text/css': ['.css'],
+        'application/javascript': ['.js', '.jsx', '.ts', '.tsx'],
+        'application/json': ['.json'],
+        'application/xml': ['.xml'],
+        'application/python': ['.py'],
+        'application/pdf': ['.pdf'], // Accept PDF
+        // Removing DOC/DOCX for now as client-side parsing is complex and requires libraries like mammoth.js
+        // 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+        // 'application/msword': ['.doc'],
+    },
+    onDropRejected: (rejectedFiles: FileRejection[]) => { // Correct type for rejectedFiles
+      rejectedFiles.forEach(({file, errors}) => {
+        console.warn(`File rejected: ${file.name}`, errors);
+        errors.forEach(err => {
+          if (err.code === 'file-invalid-type') {
+            toast({ title: 'Invalid File Type', description: `File "${file.name}" is not a supported type. Please upload PDF or text-based files.`, variant: 'destructive' }); // More specific message
+          } else if (err.code === 'file-too-large') {
+             toast({ title: 'File Too Large', description: `File "${file.name}" exceeds the size limit.`, variant: 'destructive'});
+          } else {
+             toast({ title: 'Upload Error', description: `Could not upload "${file.name}": ${err.message}`, variant: 'destructive'});
+          }
+        });
+      });
+       setUploadProgress(null);
+       setIsSummarizing(false);
+    }
   });
 
   const handleSendMessage = async () => {
     const messageToSend = currentMessage.trim();
-    if (!uploadedFile || !messageToSend || isChatLoading) return;
-
+    if (!uploadedFile || !uploadedFile.content || typeof uploadedFile.content !== 'string' || !messageToSend || isChatLoading) {
+        if (!uploadedFile?.content) {
+            toast({ title: 'Cannot Chat', description: 'No document content available to chat with.', variant: 'warning' });
+        }
+        return;
+    }
     const userMessage: ChatMessage = { role: 'user', content: messageToSend };
     setChatHistory((prev) => [...prev, userMessage]);
     setCurrentMessage('');
     setIsChatLoading(true);
-
     try {
       const chatResult = await chatWithDocument({
         documentContent: uploadedFile.content,
         userMessage: messageToSend,
       });
-
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content: chatResult.response,
       };
       setChatHistory((prev) => [...prev, assistantMessage]);
-
+      setXp(prevXp => prevXp + 5);
     } catch (error: any) {
       console.error('Error chatting with document:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: `Error: ${error.message || 'Could not get response.'}`,
-      };
+      const errorMessageContent = `Error: ${error.message || 'Could not get response.'}`;
+      const errorMessage: ChatMessage = { role: 'assistant', content: errorMessageContent };
       setChatHistory((prev) => [...prev, errorMessage]);
       toast({
         title: 'Chat Error',
-        description: error.message || 'Failed to get response from AI.',
+        description: error.message || 'Failed to get AI response.',
         variant: 'destructive',
       });
     } finally {
@@ -345,6 +495,76 @@ export default function Home() {
     }
   };
 
+   const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+   };
+
+   const formatChatHistoryForExport = (): string => {
+    let formattedContent = `Document: ${uploadedFile?.name || 'N/A'}\n\n`;
+    if (summary) {
+        formattedContent += `Summary:\n-------\n${summary}\n\n`;
+    }
+    formattedContent += "Chat History:\n-------------\n";
+    chatHistory.forEach((message) => {
+        formattedContent += `[${message.role.toUpperCase()}]\n${message.content}\n\n`; // Simple formatting
+    });
+    return formattedContent;
+   };
+
+   const handleExport = () => {
+    if (!chatHistory.length && !summary) {
+        toast({ title: "Nothing to Export", description: "Upload a file and chat or get a summary first.", variant: "warning"});
+        return;
+    }
+    setShowExportModal(true);
+   };
+
+   const handleConfirmExport = async () => {
+    let fileContent = formatChatHistoryForExport();
+    let filename = 'DuinoInsights_Chat'; // Default name
+    let fileExtension = `.${exportFormat}`;
+    let mimeType = `text/${exportFormat}`;
+
+    if (uploadedFile) {
+        const baseName = uploadedFile.name.split('.').slice(0, -1).join('.') || uploadedFile.name;
+        filename = `DuinoInsights_${baseName}_Chat`;
+    }
+
+    if (exportFormat === 'pdf') {
+        // --- PDF Export (Client-Side Example using jsPDF) ---
+        // Lazy load jsPDF to avoid increasing initial bundle size
+        try {
+            const { default: jsPDF } = await import('jspdf');
+            const pdf = new jsPDF();
+            // Basic text wrapping (jsPDF doesn't handle markdown directly)
+            const lines = pdf.splitTextToSize(fileContent, 180); // Adjust width (180mm)
+            pdf.text(lines, 10, 10); // Add text at x=10, y=10
+            pdf.save(filename + fileExtension);
+            toast({ title: "Export Successful", description: "PDF export initiated." });
+        } catch (error) {
+            console.error("Error exporting PDF:", error);
+            toast({ title: "PDF Export Failed", description: "Could not generate PDF. Install jspdf: npm install jspdf", variant: "destructive" });
+        }
+        setShowExportModal(false);
+        return; // Exit after handling PDF
+    } else if (exportFormat === 'md') {
+        mimeType = 'text/markdown';
+        // Basic Markdown structure (already handled in formatChatHistoryForExport)
+    } else { // txt
+        mimeType = 'text/plain';
+    }
+
+    downloadFile(fileContent, filename + fileExtension, mimeType);
+    setShowExportModal(false);
+   };
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -352,43 +572,42 @@ export default function Home() {
     }
   };
 
-  const FileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : Upload;
+  const CurrentFileIcon = uploadedFile ? getFileIcon(uploadedFile.name) : Upload;
 
   const MemoizedMarkdown = React.memo(({ content }: { content: string }) => (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
+    <div className="prose prose-sm dark:prose-invert max-w-none break-words">
       <ReactMarkdown
         children={content}
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          h1: ({ node, ...props }) => (
-            <h1 className="text-4xl text-purple-400 mb-4" {...props} />
-          ),
-          h2: ({ node, ...props }) => (
-            <h2 className="text-3xl text-pink-400 mb-3" {...props} />
-          ),
-          h3: ({ node, ...props }) => (
-            <h3 className="text-2xl text-teal-300 mb-2" {...props} />
-          ),
+          h1: ({ node, ...props }) => <h1 className="text-xl font-semibold text-primary mb-3" {...props} />,
+          h2: ({ node, ...props }) => <h2 className="text-lg font-semibold text-primary mb-2" {...props} />,
+          h3: ({ node, ...props }) => <h3 className="text-md font-semibold text-primary mb-1" {...props} />,
+          p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+          ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-2" {...props} />,
+          ol: ({ node, ...props }) => <ol className="list-decimal list-inside mb-2" {...props} />,
+          li: ({ node, ...props }) => <li className="mb-1" {...props} />,
           code({ node, inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline ? (
-              <pre className={cn(className, 'bg-gray-800 dark:bg-gray-900 rounded p-3 my-3 overflow-x-auto')} {...props}>
-                <code className={cn("text-sm", match ? `language-${match[1]}` : '')}>{children}</code>
+              <pre className={cn(className, 'bg-muted dark:bg-gray-800 rounded p-3 my-3 overflow-x-auto')} {...props}>
+                <code className={cn("text-sm font-mono", match ? `language-${match[1]}` : '')}>{String(children).replace(/\n$/, '')}</code>
               </pre>
             ) : (
-              <code className={cn(className, "bg-gray-700 dark:bg-gray-600 px-1 py-0.5 rounded text-yellow-300 dark:text-yellow-400")} {...props}>
+              <code className={cn(className, "bg-muted dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono text-foreground dark:text-yellow-300")} {...props}>
                 {children}
               </code>
             );
           },
           table: ({ node, ...props }) => (
-            <div className="overflow-x-auto">
-              <table className="table-auto border-collapse border border-gray-400 dark:border-gray-600 w-full my-3 text-sm" {...props} />
+            <div className="overflow-x-auto my-3 border border-border rounded">
+              <table className="table-auto border-collapse w-full text-sm" {...props} />
             </div>
           ),
-          th: ({ node, ...props }) => <th className="border border-gray-300 dark:border-gray-700 px-2 py-1 bg-gray-100 dark:bg-gray-800 font-medium" {...props} />,
-          td: ({ node, ...props }) => <td className="border border-gray-300 dark:border-gray-700 px-2 py-1" {...props} />,
+          th: ({ node, ...props }) => <th className="border border-border px-3 py-1.5 bg-muted font-medium text-left" {...props} />,
+          td: ({ node, ...props }) => <td className="border border-border px-3 py-1.5 align-top" {...props} />,
+          a: ({ node, ...props }) => <a className="text-primary underline hover:opacity-80" target="_blank" rel="noopener noreferrer" {...props} />,
         }}
       />
     </div>
@@ -397,371 +616,471 @@ export default function Home() {
 
   return (
     <TooltipProvider>
-      <div className={cn('flex flex-col min-h-screen', darkMode ? 'dark' : '')}>
-        {/* Header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
-          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
-            DuinoLearn AI
-          </h1>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)}>
-                {/* Wrap the icon and sr-only span in a single element */}
-                <span className="inline-flex items-center justify-center">
-                  {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                  <span className="sr-only">Toggle dark mode</span>
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" align="center">
-              Toggle dark mode
-            </TooltipContent>
-          </Tooltip>
-        </header>
+      <div className={cn('flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300', darkMode ? 'dark' : '')}>
+        <div
+          className={cn(
+              "fixed inset-0 -z-10 transition-opacity duration-1000",
+              darkMode
+                ? "bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900 opacity-100"
+                : "bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 opacity-100",
+              "animate-gradient"
+          )}
+          style={{ backgroundSize: '200% 200%' }}
+        />
 
-        <main className="container mx-auto flex flex-col flex-grow p-4 space-y-4 md:space-y-6">
-          <Tabs defaultValue={activeTab} className="w-full" onValueChange={(tab) => setActiveTab(tab)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="upload">
-                Upload
+        <Header xp={xp} />
+
+        <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-4 md:space-y-6 relative z-10">
+
+          {/* Export Modal */}
+          <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Export Chat & Summary</DialogTitle>
+                  <DialogDescription>Choose the format for your exported file.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                   <div className="space-y-2"> {/* Adjusted spacing */}
+                       <Label htmlFor="export-format">Select Format</Label> {/* Use Label */}
+                       <Select
+                          value={exportFormat} // Control the selected value
+                          onValueChange={value => setExportFormat(value as 'txt' | 'md' | 'pdf')}
+                       >
+                        <SelectTrigger id="export-format"> {/* Added ID for label association */}
+                            <SelectValue placeholder="Select Format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="txt">Text (.txt)</SelectItem>
+                            <SelectItem value="md">Markdown (.md)</SelectItem>
+                            <SelectItem value="pdf">PDF (.pdf)</SelectItem>
+                        </SelectContent>
+                        </Select>
+                        {exportFormat === 'pdf' && (
+                           <p className="text-xs text-muted-foreground pt-1">
+                                Basic PDF export using jsPDF. Requires <code className='text-xs'>jspdf</code> installed.
+                           </p>
+                        )}
+                    </div>
+                  </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button type="button" onClick={handleConfirmExport}>Export</Button>
+                </DialogFooter>
+              </DialogContent>
+          </Dialog>
+
+
+          {/* Tabs Navigation */}
+          {/* ... (Tabs navigation remains the same) ... */}
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full flex-grow flex flex-col ">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsTrigger value="upload" className={cn("text-sm", activeTab === "upload" ? "bg-secondary" : "hover:bg-secondary/50")}>
+                <Upload className="mr-1.5 h-4 w-4" /> Upload & Chat
               </TabsTrigger>
-              <TabsTrigger value="history">
-                History
+              <TabsTrigger value="history" className={cn("text-sm", activeTab === "history" ? "bg-secondary" : "hover:bg-secondary/50")}>
+                <BookOpen className="mr-1.5 h-4 w-4" /> History
               </TabsTrigger>
-              <TabsTrigger value="settings">
-                Settings
+              <TabsTrigger value="settings" className={cn("text-sm", activeTab === "settings" ? "bg-secondary" : "hover:bg-secondary/50")}>
+                <Code className="mr-1.5 h-4 w-4" /> Settings
+              </TabsTrigger>
+              <TabsTrigger value="faq">
+                <Lightbulb className="mr-1.5 h-4 w-4" /> FAQ
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="upload" className="mt-0 h-full">
-              {/* Upload Area */}
-              <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                <Card className="flex-1 overflow-hidden">
-                  <div
-                    {...getRootProps()}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-                      isDragActive
-                        ? "bg-accent"
-                        : "border-muted hover:bg-secondary"
-                    )}
-                  >
-                    <input {...getInputProps()} />
-                    <FileIcon className="h-10 w-10 text-muted-foreground mb-3" />
-                    {isDragActive ? (
-                      <p className="text-lg">Drop the file here...</p>
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-lg">
-                          Drag &amp; drop file here, or click to select
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Supports text-based files (TXT, PDF, DOCX, code,
-                          etc.)
-                        </p>
-                      </div>
-                    )}
-                    {uploadProgress !== null && uploadProgress >= 0 && (
-                      <div className="w-full mt-4">
-                        <Progress value={uploadProgress} />
-                        <p className="text-sm text-muted-foreground mt-1 text-right">
-                          {uploadProgress}%
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </Card>
 
-                {/* Summary Section */}
-                <Card className="flex flex-col overflow-hidden">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Summary
-                      {uploadedFile && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}
-                        >
-                          {isSummaryCollapsed ? (
-                            <ChevronsDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronsUp className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">
-                            {isSummaryCollapsed ? 'Expand' : 'Collapse'} Summary
-                          </span>
-                        </Button>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
-                      AI-generated summary of the document.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className={cn(isSummaryCollapsed ? 'h-0' : 'h-auto', 'overflow-hidden transition-all duration-300')}>
-                    {isSummarizing ? (
-                      <div className="flex items-center space-x-2">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        <p className="text-sm text-muted-foreground">
-                          Summarizing...
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        {summary ? (
-                          <>
-                            <h3 className="text-lg font-semibold mb-2">Document Summary</h3>
-                            <MemoizedMarkdown content={summary} />
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {uploadedFile
-                              ? 'Summarizing document...'
-                              : 'Upload a document to see its summary.'}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
 
-              {/* Explanatory UI Section */}
-              {uploadedFile && (
-                <div className="fixed bottom-4 right-4 z-50">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        className="rounded-full p-3 shadow-lg"
-                        onClick={() => setIsExplanatoryUIEnabled(!isExplanatoryUIEnabled)}
-                      >
-                        <Lightbulb className="h-6 w-6" />
-                        <span className="sr-only">
-                          {isExplanatoryUIEnabled ? 'Hide' : 'Show'} Explanatory UI
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" align="center">
-                      {isExplanatoryUIEnabled ? 'Hide Explanatory UI' : 'Show Explanatory UI'}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-
-              {isExplanatoryUIEnabled && uploadedFile && (
+            {/* Upload Tab Content */}
+            <TabsContent value="upload" className="mt-0 flex-grow flex flex-col space-y-4">
+              {!uploadedFile ? (
+                // Landing Page
                 <motion.div
-                  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-full max-w-4xl p-6 bg-background border rounded-lg shadow-xl"
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  key="landing"
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.3 }}
+                  className="flex-grow flex flex-col items-center justify-center text-center p-6 md:p-10 border border-dashed rounded-lg bg-background/50 backdrop-blur-sm"
+                  {...getRootProps()}
                 >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Explanatory UI</CardTitle>
+                  <input {...getInputProps()} />
+                  <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.1, type: 'spring', stiffness: 100 }}
+                      className="mb-6"
+                  >
+                     <Rocket className="h-16 w-16 text-primary mx-auto" />
+                  </motion.div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500 mb-3 dark:from-purple-400 dark:to-pink-400">
+                     Learn Faster with DuinoBot!
+                  </h1>
+                  <p className="text-base md:text-lg text-muted-foreground max-w-xl mb-6">
+                    Upload text documents (TXT, PDF, code) to get summaries, ask questions, and accelerate your learning.
+                  </p>
+                  <Button size="lg" variant="default" className="transition-transform hover:scale-105">
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isDragActive ? "Drop File Here" : "Upload Document or Drag & Drop"}
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-4">
+                     Powered by <Wand2 className="inline h-4 w-4 mx-1 text-purple-500 dark:text-purple-400" /> DuinoBot
+                  </p>
+                  {uploadProgress !== null && uploadProgress > 0 && ( // Only show if progress > 0
+                    <div className="w-full max-w-xs mt-4">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {uploadProgress < 100 ? `Processing ${uploadProgress}%` : 'Finalizing...'}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                // Main Interface (when file is uploaded)
+                <motion.div
+                  key="main-interface"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 flex-grow"
+                >
+                  {/* Left Panel */}
+                  <div className="w-full md:w-1/3 lg:w-1/4 flex flex-col space-y-4">
+                    <Card className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center text-lg">
+                          <CurrentFileIcon className="h-5 w-5 mr-2 flex-shrink-0 text-primary" />
+                          <span className="truncate" title={uploadedFile.name}>{uploadedFile.name}</span>
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          {(uploadedFile.size / 1024).toFixed(1)} KB | {uploadedFile.type || 'unknown'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div
+                           {...getRootProps()}
+                           className={cn(
+                             "flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors text-sm",
+                             isDragActive
+                               ? "bg-accent border-primary"
+                               : "border-muted hover:border-foreground/30 hover:bg-muted/50"
+                           )}
+                        >
+                          <input {...getInputProps()} />
+                          <Upload className="h-5 w-5 text-muted-foreground mb-1" />
+                          {isDragActive ? (
+                            <p>Drop file to replace...</p>
+                          ) : (
+                            <p className="text-center">Re-upload or drag new file</p>
+                          )}
+                        </div>
+                        {uploadProgress !== null && uploadProgress >= 0 && (
+                           <div className="w-full mt-2">
+                             <Progress value={uploadProgress} className="h-1.5" />
+                             <p className="text-xs text-muted-foreground mt-1 text-center">
+                               {uploadProgress < 100 ? `Processing: ${uploadProgress}%` : 'Finalizing...'}
+                             </p>
+                           </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Summary Card */}
+                    <Card className="flex flex-col flex-grow overflow-hidden">
+                      <CardHeader className="flex flex-row items-center justify-between py-2.5 px-4 border-b">
+                         <div className="space-y-0.5">
+                           <CardTitle className="text-base">Summary</CardTitle>
+                            <CardDescription className="text-xs">AI-generated overview.</CardDescription>
+                          </div>
+                          {(summary || isSummarizing) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}
+                              aria-label={isSummaryCollapsed ? 'Expand Summary' : 'Collapse Summary'}
+                              disabled={isSummarizing && !summary}
+                            >
+                               {isSummarizing && !summary ? <Loader2 className="h-4 w-4 animate-spin" /> : (isSummaryCollapsed ? <ChevronsDown className="h-4 w-4" /> : <ChevronsUp className="h-4 w-4" />)}
+                            </Button>
+                          )}
+                      </CardHeader>
+                      <AnimatePresence initial={false}>
+                         {!isSummaryCollapsed && (
+                           <motion.div
+                              key="summary-content"
+                              initial="collapsed"
+                              animate="open"
+                              exit="collapsed"
+                              variants={{ open: { opacity: 1, height: 'auto' }, collapsed: { opacity: 0, height: 0 } }}
+                              transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+                              className="overflow-hidden flex-grow flex flex-col"
+                           >
+                               <CardContent className="p-0 flex-grow">
+                                 <ScrollArea className="h-full max-h-[250px] p-4">
+                                  {isSummarizing && !summary ? (
+                                      <div className="flex items-center justify-center space-x-2 text-muted-foreground pt-4">
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <span>Generating Summary...</span>
+                                      </div>
+                                   ) : summary ? (
+                                     <MemoizedMarkdown content={summary} />
+                                   ) : (
+                                     <p className="text-muted-foreground italic text-sm text-center py-4">
+                                       {isSummarizing ? 'Loading...' : 'No summary available.'}
+                                     </p>
+                                   )}
+                                 </ScrollArea>
+                               </CardContent>
+                           </motion.div>
+                         )}
+                      </AnimatePresence>
+                    </Card>
+                  </div>
+
+                  {/* Right Panel: Chat */}
+                  <Card className="flex-1 flex flex-col w-full md:w-2/3 lg:w-3/4">
+                    <CardHeader className="border-b">
+                      <CardTitle>Chat with Document</CardTitle>
                       <CardDescription>
-                      The gamified, AI-driven explanatory container acts as an open-ended virtual teacher that intelligently breaks down complex content into digestible, interactive elements. 
+                        Ask questions about "<span className="font-medium truncate inline-block max-w-xs">{uploadedFile.name}</span>".
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      {/* Add interactive components here */}
-                      <p className="text-muted-foreground">
-                      It features an AI-powered summarizer that adapts explanations based on user level (beginner, intermediate, advanced), with toggles like “Explain Like I’m 5” or “Deep Dive.” 
-                      The UI includes collapsible, modular sections covering definitions, use-cases, analogies, and real-world examples, while visual support like GIF-style animations, charts, and hover-to-explain tooltips enhance understanding. 
-                      Users engage in a gamified experience through XP rewards, unlockable content, progress tracking, mini-quizzes, and challenges that allow AI to evaluate their understanding. 
-                      File-aware intelligence supports various formats including documents and programming files, offering line-by-line code explanations and optimization tips. An interactive “Ask Why” or “Show Another Way” button prompts deeper AI clarification, with voice input and multilingual support for accessibility. 
-                      Users can choose their AI tutor persona for a customized tone, and the system remembers past interactions to personalize future help. 
-                      The entire interface is animated using Framer Motion, styled with Tailwind and ShadCN, and powered by GPT-4 or Gemini APIs, making it not just an educational tool but a fully interactive, gamified learning assistant.
-                      </p>
-                      <ul className="list-disc list-inside mt-2">
-                        <li>Interactive quizzes</li>
-                        <li>Definition cards with animations</li>
-                        <li>Timeline-based content</li>
-                        <li>And more!</li>
-                      </ul>
-                      <Button onClick={() => setIsExplanatoryUIEnabled(false)} variant="outline" className="mt-4">Close</Button>
+                    <CardContent className="flex-grow flex flex-col p-0 overflow-hidden">
+                      <ScrollArea ref={chatContainerRef} className="flex-grow p-4">
+                        <div className="flex flex-col space-y-3 pr-2">
+                          {chatHistory.map((message, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className={cn(
+                                'p-3 rounded-lg max-w-[85%] w-fit',
+                                message.role === 'user'
+                                  ? 'bg-primary text-primary-foreground self-end rounded-br-none'
+                                  : 'bg-muted text-muted-foreground self-start rounded-bl-none'
+                              )}
+                            >
+                              <MemoizedMarkdown content={message.content} />
+                            </motion.div>
+                          ))}
+                          {isChatLoading && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="flex items-center space-x-2 self-start text-muted-foreground p-3"
+                            >
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Thinking...</span>
+                            </motion.div>
+                          )}
+                          {chatHistory.length === 0 && !isChatLoading && (
+                             <p className="text-sm text-muted-foreground text-center py-4 italic">
+                               Ask a question to start the conversation.
+                             </p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                      <div className="p-4 border-t bg-background/80 backdrop-blur-sm">
+                        <div className="flex items-end space-x-2">
+                          <Textarea
+                            placeholder="Ask anything about the document..."
+                            value={currentMessage}
+                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            ref={textAreaRef}
+                            rows={1}
+                            className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[40px] max-h-[150px]"
+                            aria-label="Chat input"
+                            disabled={!uploadedFile || isChatLoading}
+                          />
+                          <Button
+                            onClick={handleSendMessage}
+                            disabled={!uploadedFile || isChatLoading || !currentMessage.trim()}
+                            size="icon"
+                            aria-label="Send message"
+                          >
+                            {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
+
+                  {/* Explanatory UI Toggle */}
+                  <div className="fixed bottom-20 right-6 z-30"> {/* Moved up slightly */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={isExplanatoryUIEnabled ? "default" : "secondary"}
+                          className="rounded-full p-3 shadow-lg data-[state=open]:animate-pulse"
+                          onClick={() => setIsExplanatoryUIEnabled(!isExplanatoryUIEnabled)}
+                          aria-label={isExplanatoryUIEnabled ? 'Hide Explanatory UI' : 'Show Explanatory UI'}
+                        >
+                          <Lightbulb className="h-6 w-6" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" align="center">
+                         {isExplanatoryUIEnabled ? 'Hide Help' : 'Show Help'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                 {/* Explanatory UI Panel */}
+                  <AnimatePresence>
+                     {isExplanatoryUIEnabled && uploadedFile && ( // Only show if enabled AND file uploaded
+                       <motion.div
+                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4"
+                         initial={{ opacity: 0 }}
+                         animate={{ opacity: 1 }}
+                         exit={{ opacity: 0 }}
+                         onClick={() => setIsExplanatoryUIEnabled(false)}
+                       >
+                         <motion.div
+                            className="w-full max-w-2xl"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                         >
+                           <Card className="shadow-xl max-h-[85vh] overflow-hidden flex flex-col bg-card">
+                             <CardHeader className="border-b">
+                               <CardTitle>How DuinoBot Helps You Learn</CardTitle>
+                               <CardDescription>
+                                 Your interactive AI tutor for documents.
+                               </CardDescription>
+                             </CardHeader>
+                             <CardContent className="overflow-y-auto text-sm space-y-4 p-6">
+                               <p>
+                                 DuinoBot transforms your text-based documents into interactive learning sessions. Here's how:
+                               </p>
+                               <ul className="list-disc list-outside space-y-2 pl-5 text-muted-foreground">
+                                 <li><strong className="text-foreground">Dynamic Summaries:</strong> Get quick AI-generated overviews of your document's content.</li>
+                                 <li><strong className="text-foreground">Contextual Chat:</strong> Ask specific questions about the text. The AI understands the document's context to provide relevant answers.</li>
+                                 <li><strong className="text-foreground">Gamified Learning:</strong> Earn XP (<Trophy className="inline h-4 w-4 text-yellow-500" />) for uploading files and chatting, making learning more engaging.</li>
+                                 <li><strong className="text-foreground">Code Understanding:</strong> For code files, ask DuinoBot to explain snippets or concepts (effectiveness depends on the AI model).</li>
+                                 <li><strong className="text-foreground">Supported Files:</strong> Works best with TXT, MD, code files, and can process text from PDF files.</li>
+                               </ul>
+                                <p className="mt-4 font-semibold text-foreground">Try asking questions like:</p>
+                               <ul className="list-disc list-outside space-y-1 pl-5 text-muted-foreground">
+                                   <li>"Summarize the main points of section X."</li>
+                                   <li>"Explain the term '[specific term]' in simple terms."</li>
+                                   <li>"What does this Python function do?"</li>
+                                   <li>"Create a short quiz based on this document."</li>
+                               </ul>
+                             </CardContent>
+                             <DialogFooter className="p-4 border-t bg-muted/50 rounded-b-lg">
+                               <Button onClick={() => setIsExplanatoryUIEnabled(false)} variant="outline" size="sm">Close</Button>
+                              </DialogFooter>
+                           </Card>
+                         </motion.div>
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
                 </motion.div>
               )}
-
-              {/* Chat Section */}
-              <Card className="mt-4 w-full">
-                <CardHeader>
-                  <CardTitle>
-                    Chat with Document
-                  </CardTitle>
-                  <CardDescription>
-                    Ask questions about the uploaded file.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea ref={chatContainerRef} className="h-[300px] mb-2 pr-4">
-                    <div className="flex flex-col space-y-2">
-                      {chatHistory.map((message, index) => (
-                        <div
-                          key={index}
-                          className={cn(
-                            'p-3 rounded-lg',
-                            message.role === 'user'
-                              ? 'bg-secondary text-secondary-foreground self-end'
-                              : 'bg-muted text-muted-foreground self-start'
-                          )}
-                        >
-                          <MemoizedMarkdown content={message.content} />
-                        </div>
-                      ))}
-                      {isChatLoading && (
-                        <div className="flex items-center space-x-2">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          <p className="text-sm text-muted-foreground">
-                            Thinking...
-                          </p>
-                        </div>
-                      )}
-                      {!uploadedFile && chatHistory.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          Upload a document to start chatting.
-                        </p>
-                      )}
-                      {uploadedFile && chatHistory.length === 0 && !isChatLoading && (
-                        <p className="text-sm text-muted-foreground">
-                          Ask a question about "{uploadedFile?.name ||
-                            'the document'}"
-                        </p>
-                      )}
-                    </div>
-                  </ScrollArea>
-                  <div className="sticky bottom-0 pt-2">
-                    {/* Enhanced Chat Input */}
-                    <div className="flex items-center space-x-2">
-                      <Textarea
-                        placeholder="Ask me anything about the document..."
-                        value={currentMessage}
-                        onChange={(e) => setCurrentMessage(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        ref={textAreaRef}
-                        rows={1}
-                        className="resize-none flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" // Tailwind classes applied directly
-                        aria-label="Chat input"
-                        disabled={!uploadedFile}
-                      />
-                      <Button
-                        onClick={handleSendMessage}
-                        disabled={!uploadedFile || isChatLoading}
-                      >
-                        {isChatLoading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                        Send
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
 
-            <TabsContent value="history">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Upload History</CardTitle>
-                  <CardDescription>
-                    View and reload recently uploaded files.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {uploadHistory.length > 0 && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">
-                          Clear Upload History?
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Are you absolutely sure?</DialogTitle>
-                          <DialogDescription>
-                            This action cannot be undone. All locally stored
-                            file references and content previews will be
-                            removed.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button type="button" variant="secondary">
-                              Cancel
-                            </Button>
-                          </DialogClose>
-                          <Button
-                            type="submit"
-                            variant="destructive"
-                            onClick={clearUploadHistory}
-                          >
-                            Clear History
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+            {/* History Tab Content */}
+            {/* ... (History tab remains the same) ... */}
+             <TabsContent value="history" className="mt-0 flex-grow">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between border-b">
+                   <div>
+                     <CardTitle>Upload History</CardTitle>
+                     <CardDescription>
+                       Reload recently processed files. History is stored locally in your browser.
+                     </CardDescription>
+                   </div>
+                   {uploadHistory.length > 0 && (
+                     <Dialog>
+                       <DialogTrigger asChild>
+                         <Button variant="outline" size="sm">
+                           Clear History
+                         </Button>
+                       </DialogTrigger>
+                       <DialogContent className="sm:max-w-[425px]">
+                         <DialogHeader>
+                           <DialogTitle>Clear Upload History?</DialogTitle>
+                           <DialogDescription>
+                             This action cannot be undone. File references will be removed from local storage. You will need to re-upload files.
+                           </DialogDescription>
+                         </DialogHeader>
+                         <DialogFooter>
+                           <DialogClose asChild>
+                             <Button type="button" variant="secondary">Cancel</Button>
+                           </DialogClose>
+                           <DialogClose asChild>
+                             <Button type="button" variant="destructive" onClick={clearUploadHistory}>Clear History</Button>
+                           </DialogClose>
+                         </DialogFooter>
+                       </DialogContent>
+                     </Dialog>
+                   )}
+                 </CardHeader>
+                <CardContent className="flex-grow p-0">
+                 <ScrollArea className="h-full">
                   {uploadHistory.length > 0 ? (
-                    <div className="grid gap-4">
-                      {uploadHistory.map((file) => {
-                        const FileIconComponent = getFileIcon(file.name);
-                        return (
-                          <div
-                            key={file.id}
-                            className="border rounded-md p-4 flex items-center justify-between"
-                          >
-                            <div className="flex items-center space-x-4">
-                              {React.createElement(FileIconComponent, { className: "inline-block h-4 w-4 mr-2" })}
-                              <div>
-                                <p className="text-sm font-medium leading-none">
-                                  {file.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {(file.size / 1024).toFixed(1)} KB - Uploaded:{' '}
-                                  {new Date(
-                                    file.lastModified
-                                  ).toLocaleDateString()}
-                                </p>
+                        <div className="grid gap-3 p-4">
+                          {uploadHistory.map((file) => {
+                            const FileIconComponent = getFileIcon(file.name);
+                            return (
+                              <div
+                                key={file.id}
+                                className="border rounded-md p-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                              >
+                                <div className="flex items-center space-x-3 overflow-hidden">
+                                  <FileIconComponent className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                  <div className="overflow-hidden">
+                                    <p className="text-sm font-medium leading-none truncate" title={file.name}>
+                                      {file.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {(file.size / 1024).toFixed(1)} KB -{' '}
+                                      {new Date(file.lastModified).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  onClick={() => loadFileFromHistory(file.id)}
+                                  className="px-2"
+                                >
+                                  Load
+                                </Button>
                               </div>
-                            </div>
-                            <Button
-                              variant="link"
-                              size="sm"
-                              onClick={() => {
-                                loadFileFromHistory(file.id);
-                              }}
-                            >
-                              Load
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            );
+                          })}
+                        </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No upload history found. Upload a file to get started.
-                    </p>
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-sm text-muted-foreground text-center p-6">
+                          No upload history found. Upload a file on the 'Upload & Chat' tab.
+                        </p>
+                    </div>
                   )}
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="settings">
-              <Card>
+
+            {/* Settings Tab Content */}
+            {/* ... (Settings tab remains the same) ... */}
+            <TabsContent value="settings" className="mt-0 flex-grow">
+              <Card className="h-full">
                 <CardHeader>
                   <CardTitle>Settings</CardTitle>
                   <CardDescription>
-                    Customize application preferences.
+                    Customize application preferences. Settings are saved locally.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-6">
-                  <div className="flex items-center space-x-2">
+                <CardContent className="grid gap-6 p-6">
+                  <div className="flex items-center justify-between space-x-2 border p-4 rounded-lg bg-muted/30">
                     <div className="space-y-0.5">
-                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <Label htmlFor="dark-mode" className="text-base font-medium">Dark Mode</Label>
                       <p className="text-sm text-muted-foreground">
                         Toggle between light and dark themes.
                       </p>
@@ -773,21 +1092,38 @@ export default function Home() {
                       aria-label="Toggle dark mode"
                     />
                   </div>
-                  {/* Add more settings here as needed */}
-                  {/* Example:
-                    
-                    
-                      Another Setting
-                      Value
-                    
-                     */}
                 </CardContent>
               </Card>
             </TabsContent>
+
+          
+            {/* FAQ Tab Content */}
+            {/* ... (FAQ tab remains the same) ... */}
+            <TabsContent value="faq" className="mt-0 flex-grow">
+               <Card className="h-full">
+                 <ScrollArea className="h-full p-6">
+                    <FAQPage />
+                 </ScrollArea>
+               </Card>
+            </TabsContent>
+
           </Tabs>
+          {/* Footer */}
+          <Footer />
+
         </main>
+
+        <style jsx>{`
+          @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .animate-gradient {
+            animation: gradientAnimation 15s ease infinite;
+          }
+        `}</style>
       </div>
     </TooltipProvider>
   );
 }
-
