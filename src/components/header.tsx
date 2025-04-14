@@ -1,164 +1,154 @@
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { Sun, Moon, Menu, X, Trophy, BookOpen, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+'use client';
+
+// --- Core React & Next.js ---
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
+
+// --- Libraries ---
+import { useDropzone, FileRejection } from 'react-dropzone';
+import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import 'katex/dist/katex.min.css';
+// Note: pdfjs-dist is imported dynamically later
+
+// --- UI Components (Shadcn/ui & Custom) ---
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+//import Header from '@/components/header'; // Import the corrected Header
+import Footer from '../components/footer';
+// import FAQPage from './faq';
+
+// --- Icons ---
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  File as FileIconLucide, Upload, ImageIcon, Code, BookOpen, Loader2, Send, Lightbulb, ChevronsDown, ChevronsUp, Trophy, Download, Wand2, Rocket, Home, HelpCircle, Settings, BookOpenCheck
+} from 'lucide-react';
 
-} from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
-import { useTheme } from "next-themes";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { usePathname } from 'next/navigation';
-import { Orbitron } from 'next/font/google';
-import { cn } from "@/lib/utils";
+// --- Utilities & Hooks ---
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
-const orbitron = Orbitron({ subsets: ['latin'] });
+// --- AI Flows ---
+import { summarizeDocument } from '@/ai/flows/summarize-document';
+import { chatWithDocument } from '@/ai/flows/chat-with-document';
 
-interface NavLinkProps {
-  href: string;
-  label: string;
-  active?: boolean;
+// --- Interfaces ---
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+  content: string; // Stores extracted text content
 }
 
-const NavLink: React.FC<NavLinkProps> = ({ href, label, active }) => {
-  return (
-    <Link
-      href={href}
-      className={`${orbitron.className} relative px-3 py-2 text-yellow-200 transition-colors duration-200 hover:text-yellow-300 ${active ? 'underline' : ''}`}
-    >
-      {label}
-    </Link>
-  );
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+// --- Helper Functions ---
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+
+const getFileIcon = (fileName: string): React.ElementType => {
+  const fileExtension = fileName.split('.').pop()?.toLowerCase();
+  switch (fileExtension) {
+    case 'pdf': return BookOpen;
+    case 'docx': case 'doc': return FileIconLucide;
+    case 'pptx': case 'ppt': return FileIconLucide;
+    case 'txt': case 'md': return FileIconLucide;
+    case 'py': case 'js': case 'jsx': case 'ts': case 'tsx': case 'html': case 'css': case 'json': case 'xml': case 'java': case 'c': case 'cpp': return Code;
+    case 'jpg': case 'jpeg': case 'png': case 'gif': case 'svg': case 'webp': return ImageIcon;
+    default: return FileIconLucide;
+  }
 };
 
-const MobileNavLink: React.FC<NavLinkProps> = ({ href, label, active }) => {
-  return (
-  <Link
-    href={href}
-    className={` ${orbitron.className} flex w-full items-center gap-2 px-3 py-2 text-gray-100 hover:bg-gray-700 ${active ? 'underline' : ''}`}
-  >
-    {label}
-  </Link>
-  );
-};
+interface HeaderProps {
+    xp: number;
+}
 
-const MobileMenuContent: React.FC<{isOpen:boolean; setIsOpen: (isOpen:boolean) => void}> = ({isOpen, setIsOpen}) => {
-  const pathname = usePathname();
-  const [xp, setXp] = useState<number>(0);
+const Header: React.FC<HeaderProps> = ({ xp }) => {
+    const [darkMode, setDarkMode] = useState<boolean>(true);
 
-  useEffect(() => {
-    const storedXp = localStorage.getItem('userXp');
-    if (storedXp) {
-      setXp(parseInt(storedXp, 10) || 0);
-    }
-  }, []);
+    useEffect(() => {
+        const storedDarkMode = localStorage.getItem('darkMode');
+        if (storedDarkMode) {
+            setDarkMode(JSON.parse(storedDarkMode));
+        } else {
+            setDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+        }
+    }, []);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2 }}
-      className="absolute top-16 left-0 w-full bg-gray-900 rounded-md p-4 glass" // Applied glassmorphism here
-    >
-      <div className="flex flex-col space-y-4 items-center">
-        <div className="flex items-center space-x-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          <span className={`${orbitron.className} text-lg font-bold text-yellow-500`}>XP: {xp}</span>
-          <div className="w-32">
-            <Progress value={(xp % 100)} className="h-2 bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-sm" aria-label={`Level progress: ${xp % 100}%`} />
-          </div>
-        </div>
-        <MobileNavLink href="/" label="Home" active={pathname === '/'} />
-        <MobileNavLink href="/history" label="History" active={pathname === '/history'}/>
-        <MobileNavLink href="/faq" label="FAQ" active={pathname === '/faq'}/>
-      </div>
-    </motion.div>
-  );
-};
+    useEffect(() => {
+        document.body.classList.toggle('dark', darkMode);
+        document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
+        localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    }, [darkMode]);
 
-const Header: React.FC = () => {
-  const pathname = usePathname();
-  const [xp, setXp] = useState<number>(0);
-  const [isOpen, setIsOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+    const toggleDarkMode = () => {
+        setDarkMode(!darkMode);
+    };
 
-  useEffect(() => {
-    const storedXp = localStorage.getItem('userXp');
-    if (storedXp) {
-      setXp(parseInt(storedXp, 10) || 0);
-    }
-  }, []);
+    return (
+        <header className="sticky top-0 z-20 glass p-4 border-b border-white/10">
+            <div className="container mx-auto flex items-center justify-between">
+                {/* Logo and Title */}
+                <Link href="/" className="flex items-center space-x-2">
+                    <img src="/duino.png" alt="DuinoLearn Logo" className="h-8 w-auto rounded-full shadow-md" />
+                    <span className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-lg font-bold text-transparent tracking-tight">
+                        DuinoCourse AI
+                    </span>
+                </Link>
 
-  return (
-    <motion.nav
-      className="fixed top-0 z-50 w-full shadow-md bg-gray-900/80 backdrop-blur-md" // Added shadow and blur
-      initial={{ opacity: 0, y: -100 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center space-x-2">
-          <Image
-            src="/duino.png"
-            alt="DuinoCourse AI Logo"
-            width={150}
-            height={50}
-            priority
-          />
-        </Link>
-        <div className="flex-grow" />
-        <div className="hidden md:flex items-center space-x-6">
-          <div className="flex items-center space-x-4">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            <span className={`${orbitron.className} text-lg font-bold text-yellow-500`}>XP: {xp}</span>
-            <div className="w-32">
-              <Progress value={(xp % 100)} className="h-2 bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-sm" aria-label={`Level progress: ${xp % 100}%`} />
+                {/* Navigation Links */}
+                <nav className="flex items-center space-x-4">
+                    <Link href="/" className="flex items-center space-x-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <Home className="h-4 w-4" />
+                        <span>Home</span>
+                    </Link>
+                    <Link href="/history" className="flex items-center space-x-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <BookOpenCheck className="h-4 w-4" />
+                        <span>History</span>
+                    </Link>
+                    <Link href="/faq" className="flex items-center space-x-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <HelpCircle className="h-4 w-4" />
+                        <span>FAQ</span>
+                    </Link>
+
+                    {/* Theme Toggle Button */}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={toggleDarkMode} aria-label="Toggle dark mode">
+                                    {darkMode ? <Lightbulb className="h-4 w-4" /> : <Code className="h-4 w-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                Toggle theme
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </nav>
+
+                {/* XP Display */}
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <span>XP: {xp}</span>
+                    <Trophy className="h-4 w-4 text-yellow-500" />
+                </div>
             </div>
-          </div>
-          <NavLink href="/" label="Home" active={pathname === '/'} />
-          <NavLink href="/history" label="History" active={pathname === '/history'} />
-          <NavLink href="/faq" label="FAQ" active={pathname === '/faq'}/>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setTheme(theme === "light" ? "dark" : "light")
-                  }
-                  className="hover:bg-secondary transition-colors duration-300" // Added transition
-                >
-                  {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  <span className="sr-only">Toggle theme</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="center">
-                Toggle theme
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <motion.div className="md:hidden" animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsOpen(!isOpen)}
-            className="bg-gray-900 hover:bg-gray-800 text-white transition-colors duration-300" // Added transition
-          >
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </motion.div>
-        {isOpen && <MobileMenuContent isOpen={isOpen} setIsOpen={setIsOpen}/>}
-      </div>
-    </motion.nav>
-  );
+        </header>
+    );
 };
 
 export default Header;
