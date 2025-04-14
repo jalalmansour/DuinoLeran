@@ -59,13 +59,19 @@ const MobileMenuContent: React.FC<{isOpen:boolean; setIsOpen: (isOpen:boolean) =
   }, []);
 
   return (
-    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="absolute top-16 left-0 w-full bg-gray-900 rounded-md p-4">
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="absolute top-16 left-0 w-full bg-gray-900 rounded-md p-4 glass" // Applied glassmorphism here
+    >
       <div className="flex flex-col space-y-4 items-center">
-      <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
           <Trophy className="h-5 w-5 text-yellow-500" />
           <span className={`${orbitron.className} text-lg font-bold text-yellow-500`}>XP: {xp}</span>
           <div className="w-32">
-              <Progress value={(xp % 100)} className="h-2 bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-sm" aria-label={`Level progress: ${xp % 100}%`} />
+            <Progress value={(xp % 100)} className="h-2 bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-sm" aria-label={`Level progress: ${xp % 100}%`} />
           </div>
         </div>
         <MobileNavLink href="/" label="Home" active={pathname === '/'} />
@@ -73,8 +79,8 @@ const MobileMenuContent: React.FC<{isOpen:boolean; setIsOpen: (isOpen:boolean) =
         <MobileNavLink href="/faq" label="FAQ" active={pathname === '/faq'}/>
       </div>
     </motion.div>
-  )
-}
+  );
+};
 
 const Header: React.FC = () => {
   const pathname = usePathname();
@@ -90,7 +96,12 @@ const Header: React.FC = () => {
   }, []);
 
   return (
-    <nav className="fixed top-0 z-50 w-full shadow-md bg-gray-900/80 backdrop-blur-md">
+    <motion.nav
+      className="fixed top-0 z-50 w-full shadow-md bg-gray-900/80 backdrop-blur-md" // Added shadow and blur
+      initial={{ opacity: 0, y: -100 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center space-x-2">
           <Image
@@ -122,7 +133,7 @@ const Header: React.FC = () => {
                   onClick={() =>
                     setTheme(theme === "light" ? "dark" : "light")
                   }
-                  className="hover:bg-secondary"
+                  className="hover:bg-secondary transition-colors duration-300" // Added transition
                 >
                   {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                   <span className="sr-only">Toggle theme</span>
@@ -134,14 +145,19 @@ const Header: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="md:hidden">
-          <Button variant="outline" size="icon" onClick={() => setIsOpen(!isOpen)} className='bg-gray-900 hover:bg-gray-800 text-white'>
+        <motion.div className="md:hidden" animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsOpen(!isOpen)}
+            className="bg-gray-900 hover:bg-gray-800 text-white transition-colors duration-300" // Added transition
+          >
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          {isOpen && <MobileMenuContent isOpen={isOpen} setIsOpen={setIsOpen}/>}
-        </div>
+        </motion.div>
+        {isOpen && <MobileMenuContent isOpen={isOpen} setIsOpen={setIsOpen}/>}
       </div>
-    </nav>
+    </motion.nav>
   );
 };
 
