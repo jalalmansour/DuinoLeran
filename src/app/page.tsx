@@ -11,18 +11,13 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 
 // --- UI Components ---
-import { TooltipProvider } from '@/components/ui/tooltip'; // Import TooltipProvider
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Button as ShadcnButton } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-
-// --- Icons ---
-import { Download, MessageSquare, Upload, Rocket, Loader2 } from 'lucide-react'; // Add necessary icons
+import { Loader2 } from 'lucide-react';
 
 // --- Utilities & Hooks ---
 import { cn } from '@/lib/utils';
@@ -34,16 +29,16 @@ import Header, { type ActiveTabValue } from '@/components/header';
 import Footer from '@/components/footer';
 // Dynamically import the main interaction component
 const UploadInteract = dynamic(() => import('@/components/upload/UploadInteract'), {
-    loading: () => ( // Basic loading indicator
+    loading: () => (
         <div className="flex items-center justify-center h-60">
             <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))]" />
             <p className="ml-2 text-[hsl(var(--muted-foreground))]">Loading Interface...</p>
         </div>
     ),
-    ssr: false, // Important: Disable server-side rendering
+    ssr: false,
 });
-// Dynamically import FAQ page if it's large or uses client-only features extensively
-const FAQPage = dynamic(() => import('./faq'), { ssr: true }); // Can be SSR if simple
+// Dynamically import FAQ page
+const FAQPage = dynamic(() => import('./faq'), { ssr: true });
 
 // --- Interfaces ---
 interface UploadedFile {
@@ -56,57 +51,46 @@ interface UploadedFile {
     contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
 }
 
-interface ChatMessage {
-    role: 'user' | 'assistant';
-    content: string;
-}
-
-// --- Constants & Helpers ---
-const MAX_FILE_SIZE_MB = 50; // Define if needed by UploadInteract or here
-
 // --- Framer Motion Variants ---
 const tabContentVariants = { hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } }, exit: { opacity: 0, x: 10, transition: { duration: 0.2, ease: 'easeIn' } } };
 
 // --- Main Component ---
 export default function Home() {
     const hasHydrated = useHasHydrated();
-    // --- Theme State ---
+    // Theme State
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
-    // --- Application State ---
-    const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null); // Managed here, passed to UploadInteract
-    const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);      // Managed here, passed to UploadInteract
+    // Application State
+    const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+    const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
     const [activeTab, setActiveTab] = useState<ActiveTabValue>("upload");
-    const [xp, setXp] = useState<number>(0); // Managed here, passed to UploadInteract for updates
+    const [xp, setXp] = useState<number>(0);
 
-    // --- Refs ---
-    const { toast } = useToast(); // Toast can be passed down
-    const headerRef = useRef<HTMLElement>(null); // Ref for header animations
+    // Refs
+    const { toast } = useToast();
+    const headerRef = useRef<HTMLElement>(null);
 
-    // --- Effects ---
-    useEffect(() => { // Load initial state (history, XP)
+    // Effects
+    useEffect(() => { // Load initial state
         try { const storedHistory = localStorage.getItem('uploadHistory'); if (storedHistory) setUploadHistory(JSON.parse(storedHistory)); } catch (e) { console.error('Failed to parse upload history:', e); localStorage.removeItem('uploadHistory'); }
         try { const storedXp = localStorage.getItem('userXp'); if (storedXp) setXp(parseInt(storedXp, 10) || 0); } catch (e) { console.error('Failed to parse user XP:', e); localStorage.removeItem('userXp'); }
     }, []);
 
-    useEffect(() => { // Save XP when it changes
-        // Ensure we only save *after* hydration to avoid overwriting initial load
-        if (xp > 0 || localStorage.getItem('userXp')) { // Check if XP has been set or was loaded
+    useEffect(() => { // Save XP
+        if (xp > 0 || localStorage.getItem('userXp')) {
            localStorage.setItem('userXp', xp.toString());
         }
     }, [xp]);
 
-    // Particle initialization effect
     const [particlesInit, setParticlesInit] = useState(false);
-    useEffect(() => {
+    useEffect(() => { // Init Particles
         initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => setParticlesInit(true));
     }, []);
 
-    // Header scroll animation effect
-    const { scrollY } = useScroll();
+    const { scrollY } = useScroll(); // Header Scroll Animation
     const underlineScaleX = useTransform(scrollY, [0, 50], [0, 1], { clamp: false });
 
-    // --- Callbacks (Centralized Here, Pass Down if Needed) ---
+    // --- Callbacks ---
     const saveUploadHistory = useCallback((file: UploadedFile) => {
       setUploadHistory((prev) => {
         if (prev.some(i => i.name === file.name && i.lastModified === file.lastModified)) return prev;
@@ -125,18 +109,17 @@ export default function Home() {
         const fileToLoad = uploadHistory.find(f => f.id === fileId);
         if (fileToLoad) {
           if (!fileToLoad.content) { toast({ title: 'Content Missing', variant: 'warning' }); return; }
-          setUploadedFile(fileToLoad); // Set the file
-          setActiveTab("upload");      // Switch to the upload tab
-          toast({ title: 'File Loaded from History', description: `Loading ${fileToLoad.name}...`, variant: 'info' });
-          // UploadInteract component will likely handle triggering summary/analysis when uploadedFile changes
+          setUploadedFile(fileToLoad);
+          setActiveTab("upload");
+          toast({ title: 'File Loaded from History', variant: 'info' });
         } else { toast({ title: 'Error Loading File', variant: 'destructive' }); }
       }, [uploadHistory, toast, setActiveTab]);
 
 
-    // --- Particle Config (Themeable) ---
+    // --- Particle Config ---
     const particleOptions = React.useMemo(() => {
         const baseConfig = { fpsLimit: 60, interactivity: { events: { onClick: { enable: false }, onHover: { enable: true, mode: "repulse" }, resize: true }, modes: { repulse: { distance: 80, duration: 0.4 } } }, particles: { links: { distance: 100, enable: true, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "out" }, random: true, speed: 0.5, straight: false }, number: { density: { enable: true, area: 900 }, value: 40 }, shape: { type: "circle" }, size: { value: { min: 1, max: 2.5 } } }, detectRetina: true, background: { color: "transparent" } };
-        switch(theme) {
+        switch(theme) { // Theme specific particle overrides
             case 'cyberpunk': case 'matrix-code': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#0ff", "#f0f", "#0f0"] }, links: { ...baseConfig.particles.links, color: "#0ff", opacity: 0.15 }, opacity: { value: { min: 0.2, max: 0.6 } } } };
             case 'dark-luxe': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#D4AF37", "#C0C0C0", "#A0A0A0"] }, links: { ...baseConfig.particles.links, color: "#B0B0C0", opacity: 0.08 }, opacity: { value: { min: 0.1, max: 0.4 } } } };
             case 'glassmorphism': case 'minimal-light': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#a0a0ff", "#a0d0ff", "#c0c0ff"] }, links: { ...baseConfig.particles.links, color: "#c0c0c0", opacity: 0.2 }, opacity: { value: { min: 0.3, max: 0.7 } } } };
@@ -153,7 +136,7 @@ export default function Home() {
             <div className={cn('flex flex-col min-h-screen font-sans transition-colors duration-300')}>
                 {/* Background Elements */}
                  <div className="fixed inset-0 -z-20 overflow-hidden">
-                    <motion.div className={cn("absolute inset-0 transition-opacity duration-1000", { /* ... theme backgrounds ... */ }[theme] ?? "bg-[hsl(var(--background))]")} /* ... animation ... */ />
+                    <motion.div className={cn("absolute inset-0 transition-opacity duration-1000", { /* ... theme backgrounds ... */ }[theme] ?? "bg-[hsl(var(--background))]")} style={{ backgroundSize: '200% 200%' }} animate={['cyberpunk', 'sunset-gradient', 'dark-luxe'].includes(theme) ? { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] } : {}} transition={['cyberpunk', 'sunset-gradient', 'dark-luxe'].includes(theme) ? { duration: 25, repeat: Infinity, ease: "linear" } : {}} />
                     <div className={cn("absolute inset-0 bg-grid opacity-20", { /* ... theme grid opacity ... */ })} style={{ /* grid styles in globals.css */ }}></div>
                     {particlesInit && <Particles id="tsparticles" options={particleOptions as any} className="absolute inset-0 pointer-events-none" />}
                 </div>
@@ -175,27 +158,40 @@ export default function Home() {
                     </motion.h1>
                 </Header>
 
-                {/* Main Content Area */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-20">
+                {/* Main Content Area - Added pb-24 */}
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-32 pb-24">
+                                                                                                               {/* ^^^^^^ Added Bottom Padding */}
                     {/* Tab Content */}
                     <AnimatePresence mode="wait">
                         {activeTab === "upload" && (
-                            <motion.div key="upload-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none">
-                                {/* Pass necessary props down to the UploadInteract component */}
+                            <motion.div
+                                key="upload-content"
+                                variants={tabContentVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                className="flex-grow flex flex-col outline-none mt-6" // Added top margin
+                             >
                                 <UploadInteract
                                     uploadedFile={uploadedFile}
                                     setUploadedFile={setUploadedFile}
-                                    saveUploadHistory={saveUploadHistory} // Pass save function down
+                                    saveUploadHistory={saveUploadHistory}
                                     xp={xp}
-                                    setXp={setXp} // Pass XP setter down
-                                    toast={toast} // Pass toast function
+                                    setXp={setXp}
+                                    toast={toast}
                                 />
                             </motion.div>
                         )}
 
                         {activeTab === "history" && (
-                            <motion.div key="history-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none">
-                                {/* History Component Placeholder/Implementation */}
+                            <motion.div
+                                key="history-content"
+                                variants={tabContentVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                className="flex-grow flex flex-col outline-none mt-6" // Added top margin
+                            >
                                 <Card className="glassmorphism h-full flex flex-col">
                                     <CardHeader>
                                         <CardTitle className="text-[hsl(var(--primary))]">Access Logs</CardTitle>
@@ -205,17 +201,19 @@ export default function Home() {
                                         {uploadHistory.length === 0 ? (
                                             <p className="text-center text-[hsl(var(--muted-foreground))] italic">No history records found.</p>
                                         ) : (
-                                            <ul className="space-y-3">
-                                                {uploadHistory.map(file => (
-                                                    <li key={file.id} className="flex items-center justify-between p-3 border border-[hsl(var(--border))] rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)]">
-                                                        <span className="truncate text-sm" title={file.name}>{file.name}</span>
-                                                        <ShadcnButton variant="outline" size="sm" onClick={() => loadFileFromHistory(file.id)}>Load</ShadcnButton>
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                            <ScrollArea className="h-[calc(60vh-100px)] pr-3 scrollbar-thin">
+                                                <ul className="space-y-3">
+                                                    {uploadHistory.map(file => (
+                                                        <li key={file.id} className="flex items-center justify-between p-3 border border-[hsl(var(--border))] rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] hover:bg-[hsl(var(--accent)/0.1)] transition-colors">
+                                                            <span className="truncate text-sm" title={file.name}>{file.name}</span>
+                                                            <ShadcnButton variant="outline" size="sm" onClick={() => loadFileFromHistory(file.id)}>Load</ShadcnButton>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </ScrollArea>
                                         )}
                                         {uploadHistory.length > 0 && (
-                                           <div className="mt-4 text-center">
+                                           <div className="mt-4 pt-4 border-t border-[hsl(var(--border)/0.5)] text-center">
                                               <ShadcnButton variant="destructive" size="sm" onClick={clearUploadHistory}>Clear All History</ShadcnButton>
                                            </div>
                                         )}
@@ -225,7 +223,14 @@ export default function Home() {
                         )}
 
                         {activeTab === "settings" && (
-                             <motion.div key="settings-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none">
+                             <motion.div
+                                key="settings-content"
+                                variants={tabContentVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                className="flex-grow flex flex-col outline-none mt-6" // Added top margin
+                            >
                                  <Card className="glassmorphism h-full">
                                     <CardHeader>
                                         <CardTitle className="text-[hsl(var(--primary))]">Preferences</CardTitle>
@@ -250,13 +255,21 @@ export default function Home() {
                                                  </SelectContent>
                                              </Select>
                                         </div>
+                                         {/* Add other settings here */}
                                     </CardContent>
                                 </Card>
                             </motion.div>
                         )}
 
                         {activeTab === "faq" && (
-                            <motion.div key="faq-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none">
+                            <motion.div
+                                key="faq-content"
+                                variants={tabContentVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                className="flex-grow flex flex-col outline-none mt-6" // Added top margin
+                            >
                                 <Card className="glassmorphism h-full flex flex-col">
                                     <CardHeader>
                                         <CardTitle className="text-[hsl(var(--primary))]">Knowledge Base</CardTitle>

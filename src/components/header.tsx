@@ -1,4 +1,3 @@
-// src/components/header.tsx
 import React from 'react';
 // --- ADD THIS IMPORT ---
 import { motion, AnimatePresence } from 'framer-motion';
@@ -121,7 +120,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                         <span className="text-muted-foreground">Loading Themes...</span>
                     ) : (
                         <Select value={currentTheme} onValueChange={(value) => setTheme(value as ThemeId)}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-[140px] sm:w-[180px]">
                                 <SelectValue placeholder="Select a theme" />
                             </SelectTrigger>
                             <SelectContent>
@@ -129,8 +128,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                     <SelectLabel>Available Themes</SelectLabel>
                                     {availableThemes.map((t) => (
                                         <SelectItem key={t.id} value={t.id}>
-                                            <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}
-                                        </SelectItem>
+                                            <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem>
                                     ))}
                                 </SelectGroup>
                             </SelectContent>
@@ -191,8 +189,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                         <SelectLabel>Available Themes</SelectLabel>
                                         {availableThemes.map((t) => (
                                             <SelectItem key={t.id} value={t.id}>
-                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}
-                                            </SelectItem>
+                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem>
                                         ))}
                                     </SelectGroup>
                                 </SelectContent>
