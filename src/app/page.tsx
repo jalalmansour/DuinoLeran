@@ -11,7 +11,7 @@ import { useThemeStore, themes, useHasHydrated, type ThemeId } from '@/hooks/use
 
 // --- Custom Components & Types ---
 import Header, { type ActiveTabValue } from '@/components/header';
-import Footer from '../components/footer';
+import Footer from '@/components/footer';
 
 // --- Interfaces ---
 interface UploadedFile {
@@ -73,7 +73,7 @@ export default function Home(props: HomeProps) {
 
         {/* Header */}
         <Header
-          xp={xp},
+          xp={xp}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           currentTheme={theme}
