@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, Settings, UploadCloud, History, HelpCircle, Palette, Star, Menu, X, Loader2 } from 'lucide-react';
 import { type ThemeId, type themes as themeOptions, useHasHydrated } from '@/hooks/useThemeStore';
+import Image from 'next/image';
 
 export type ActiveTabValue = "upload" | "history" | "settings" | "faq";
 
@@ -80,7 +81,16 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
             <div className="container mx-auto flex items-center justify-between h-16 px-4 md:px-6">
                 {/* Left Side: Title */}
                 <div className="flex items-center flex-shrink-0 mr-4">
-                  {children}
+                  <Image
+                    src="/duino.png"
+                    alt="DuinoLearn Logo"
+                    width={40}
+                    height={40}
+                    className="mr-2"
+                  />
+                  <motion.h1 className="text-2xl md:text-3xl font-bold tracking-tighter gradient-text filter drop-shadow-[0_0_5px_hsla(var(--primary),0.4)] py-1 relative" style={{ fontFamily: 'var(--font-display, var(--font-sans))' }}>
+                      DuinoCourse AI
+                  </motion.h1>
                 </div>
 
                 {/* Center: Desktop Navigation Tabs */}

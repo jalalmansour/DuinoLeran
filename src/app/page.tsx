@@ -159,8 +159,7 @@ export default function Home() {
                 </Header>
 
                 {/* Main Content Area - Added pb-24 */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-32 pb-24">
-                                                                                                               {/* ^^^^^^ Added Bottom Padding */}
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-32 pb-33">                                                                                             {/* ^^^^^^ Added Bottom Padding */}
                     {/* Tab Content */}
                     <AnimatePresence mode="wait">
                         {activeTab === "upload" && (
