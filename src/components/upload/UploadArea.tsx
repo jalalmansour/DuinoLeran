@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface UploadedFile {
@@ -44,9 +44,9 @@ const getFileIcon = (fileName: string): React.ElementType => {
     case 'mp3': case 'wav': case 'ogg': return Music;
     case 'mp4': case 'avi': case 'mov': case 'webm': return VideoIcon;
     default: return FileIconLucide;
-  }  
+  }
 };
-
+const MAX_FILE_SIZE_MB = 50;
 const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { toast } = useToast();
@@ -68,15 +68,13 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
       reader.onload = async (e) => {
         try {
           let content: string;
-          
-          if (file.type.startsWith('text/') || file.type === 'application/json') {
 
+          if (file.type.startsWith('text/')) {
             content = e.target?.result as string;
-            
-          }else if (file.type === 'application/pdf' || file.type ==='application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type ==='application/vnd.oasis.opendocument.text' || file.type === 'application/rtf'){
+
+          } else if (file.type === 'application/pdf' || file.type === 'application/json' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/vnd.oasis.opendocument.text' || file.type === 'application/rtf') {
             content = e.target?.result as string;
-          }
-           else {
+          } else {
             const arrayBuffer = e.target?.result as ArrayBuffer;
             const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
             content = `data:${file.type};base64,${base64String}`;
@@ -119,24 +117,18 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
       if (file.type.startsWith('text/') || file.type === 'application/json' || file.type ==='application/pdf' || file.type ==='application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type ==='application/vnd.oasis.opendocument.text' || file.type === 'application/rtf') {
         reader.readAsText(file);
       } else {
-        reader.readAsArrayBuffer(file);
-       }
+        reader.readAsArrayBuffer(file); }
     })
   }
   const traverseFileTree = async (item: any, path?: string) => {
     path = path || '';
     if (item.isFile) {
       // Get file
-      item.file((file: File) => {
-        const maxFileSize = 100 * 1024 * 1024; // 100MB
-            if (file.size > maxFileSize) {
-              toast({
-                title: 'Error: File Too Large',
-                description: `File size must be less than 100MB to be uploaded`,
-                variant: 'destructive',
-              });
-              return;
-            }
+      item.file((file: File) => {        
+
+        processFile(file, path).then(async newFile => {
+          if (newFile) {
+
             const userId = localStorage.getItem('userId');
             if (!userId) {
               toast({
@@ -146,23 +138,20 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
               });
               console.error('Error: User ID not found in localStorage');
               return;
-
-
             }
-        
-        processFile(file, path).then(async newFile => {
-          if (newFile) {
-            onFileUploaded(newFile);
-            toast({
-              title: 'File Uploaded',
-              description: `Successfully uploaded ${file.name}.`,
-            });
+
             fetch('/api/upload', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'x-user-id': userId,
               },
+            }).then(() => {
+              onFileUploaded(newFile);
+              toast({
+                title: 'File Uploaded',
+                description: `Successfully uploaded ${file.name}.`,
+              });
               body: JSON.stringify(newFile),
             }).catch((error) => {
               console.error('Error sending file to server:', error);
@@ -172,13 +161,13 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
       });
     } else if (item.isDirectory) {
       // Get folder contents
-       const dirReader = item.createReader();
-        dirReader.readEntries(async (entries: any[]) => {
-          for (let i = 0; i < entries.length; i++) {
-            await traverseFileTree(entries[i], path + item.name + '/');
-          }
-      
-          
+      const dirReader = item.createReader();
+      dirReader.readEntries(async (entries: any[]) => {
+        for (let i = 0; i < entries.length; i++) {
+          await traverseFileTree(entries[i], path + item.name + '/');
+        }
+
+
       });
     }
   };
@@ -186,51 +175,39 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
   const onDrop = useCallback(
     async (acceptedFiles: any) => {
 
-      if(acceptedFiles && acceptedFiles.length){
-        
+      if (acceptedFiles && acceptedFiles.length) {
+
         for (let i = 0; i < acceptedFiles.length; i++) {
-          const file = acceptedFiles[i];      
-          
+          const file = acceptedFiles[i];
+
           const entry = file.webkitGetAsEntry();
           if (entry) {
             traverseFileTree(entry)
           } else {
-            
-            const maxFileSize = 100 * 1024 * 1024; // 100MB
-            if (file.size > maxFileSize) {
-              toast({
-                title: 'Error: File Too Large',
-                description: `File size must be less than 100MB to be uploaded`,
-                variant: 'destructive',
-              });
-              return;
-            }
+
             const userId = localStorage.getItem('userId');
             if (!userId) {
-              toast({
-                title: 'Error: User ID Not Found',
-                description: 'Could not retrieve user ID from browser storage.',
-                variant: 'destructive',
-              });
-              console.error('Error: User ID not found in localStorage');
-              return;
-
+              toast({ title: 'Error: User ID Not Found', description: 'Could not retrieve user ID from browser storage.', variant: 'destructive' });
+              console.error('Error: User ID not found in localStorage'); return;
             }
-             if (file) {
+            if (file) {
+              if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                toast({ title: 'File Too Large', description: `File size exceeds the limit of ${MAX_FILE_SIZE_MB}MB.`, variant: 'destructive' });
+                continue;
+              }
               processFile(file).then(newFile => {
                 if (newFile) {
-                  onFileUploaded(newFile);
-                  toast({
-                    title: 'File Uploaded',
-                    description: `Successfully uploaded ${file.name}.`,
-                  });
                   fetch('/api/upload', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
                       'x-user-id': userId,
                     },
+
                     body: JSON.stringify(newFile),
+                  }).then(() => {
+                    onFileUploaded(newFile);
+                    toast({ title: 'File Uploaded', description: `Successfully uploaded ${file.name}.`, });
                   }).catch((error) => {
                     console.error('Error sending file to server:', error);
                   });
@@ -238,17 +215,16 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
               });
             }
           }
-         }
+        }
       }
-      
+
     },
     [toast, onFileUploaded]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: false,
-    
+    multiple: true, accept: undefined
   });
   return (
     <Card className="flex-1 overflow-hidden">
@@ -262,20 +238,20 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
         )}
       >
         <input {...getInputProps()} />
-        <Upload className="h-10 w-10 text-muted-foreground mb-3" />
-        {isDragActive ? (
-          <p className="text-lg">Drop the file here...</p>
-        ) : (
-          <div className="text-center">
-            <p className="text-lg">
-              Drag &amp; drop file here, or click to select
-            </p>
-            <p className="text-sm text-muted-foreground">
-            Supports documents (PDF, DOCX, PPTX, TXT, ODT, RTF), programming files (JS, PY, HTML, CSS, JAVA, C, CPP, GO, TS), zip archives (ZIP), images (JPG, JPEG, PNG, GIF, BMP, SVG), audio (MP3, WAV, OGG), and video (MP4, AVI, MOV, WEBM).
-
-            </p>            
-          </div>
-        )}
+        <CardHeader className="text-center">
+          <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+          {isDragActive ? (
+            <CardTitle className="text-lg">Drop the file here...</CardTitle>
+          ) : (
+            <div className="text-center">
+              <CardTitle className="text-lg">
+                Drag &amp; drop file here, or click to select
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                You can drag and drop any type of files here or click to select.
+              </p>
+            </div>
+          )}
         {uploadProgress !== null && uploadProgress >= 0 && (
           <div className="w-full mt-4">
             <Progress value={uploadProgress} />
@@ -284,6 +260,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
             </p>
           </div>
         )}
+        </CardHeader>
       </div>
     </Card>
   );

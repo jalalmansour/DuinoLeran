@@ -1,180 +1,627 @@
+/* globals.css */
+
+/* --- Fonts MUST be imported first --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=Merriweather:wght@400;700&family=Orbitron:wght@400;700&family=Press+Start+2P&family=Comfortaa:wght@400;700&display=swap');
+
+/* --- Tailwind Directives --- */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* Base Styles */
+
+
+/* --- Base Layer (Theme Variables & Component Styles) --- */
 @layer base {
-  body {
-    @apply text-white font-poppins min-h-screen overflow-x-hidden;
-    background-color: theme("colors.dark");
+  :root {
+    /* Default to Cyberpunk - Use HSL values without hsl() for easier Tailwind integration */
+    --background: 230 30% 8%; /* Deep Blue/Black */
+    --foreground: 210 40% 95%; /* Light Cyan/White */
+    --card: 230 25% 12%; /* Slightly Lighter Dark Blue */
+    --card-foreground: 210 40% 90%;
+    --popover: 230 30% 6%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 180 90% 50%; /* Cyan */
+    --primary-foreground: 230 30% 5%;
+    --secondary: 270 80% 65%; /* Purple */
+    --secondary-foreground: 210 40% 98%;
+    --accent: 330 90% 60%; /* Pink */
+    --accent-foreground: 230 30% 5%;
+    --muted: 220 20% 30%; /* Muted Blue/Gray */
+    --muted-foreground: 220 15% 65%;
+    --destructive: 0 80% 60%; /* Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 180 50% 30%; /* Dark Cyan */
+    --input: 230 20% 15%;
+    --input-foreground: 210 40% 85%; /* Variable for input text color */
+    --ring: 180 90% 55%; /* Brighter Cyan for focus */
+
+    --radius: 0.75rem; /* Default large radius for cyberpunk */
+    --shadow: 0 10px 25px -5px hsla(var(--primary), 0.3), 0 8px 10px -6px hsla(var(--primary), 0.2);
+    --shadow-lg: 0 20px 40px -10px hsla(var(--primary), 0.4), 0 15px 25px -10px hsla(var(--secondary), 0.3);
+    --shadow-inset: inset 0 2px 4px 0 hsla(0, 0%, 0%, 0.3);
+
+    --font-sans: 'Poppins', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Orbitron', sans-serif; /* Specific for Cyberpunk titles */
   }
+
+  /* --- Theme Overrides --- */
+
+  /* 1. Cyberpunk (Default) */
+  html[data-theme="cyberpunk"] {
+    /* Already set in :root */
+    --font-display: 'Orbitron', sans-serif;
+  }
+
+  /* 2. Glassmorphism */
+  html[data-theme="glassmorphism"] {
+    --background: 210 60% 95%; /* Light Blueish Background */
+    --foreground: 220 20% 30%; /* Dark Gray Text */
+    --card: 0 0% 100% / 0.4; /* Semi-transparent White */
+    --card-foreground: 220 20% 25%;
+    --popover: 0 0% 100% / 0.8;
+    --popover-foreground: 220 20% 25%;
+    --primary: 210 90% 60%; /* Bright Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 80% 70%; /* Soft Purple */
+    --secondary-foreground: 0 0% 100%;
+    --accent: 330 85% 70%; /* Soft Pink */
+    --accent-foreground: 220 20% 25%;
+    --muted: 220 15% 85%; /* Light Gray */
+    --muted-foreground: 220 10% 50%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 30% 80% / 0.5; /* Semi-transparent border */
+    --input: 0 0% 100% / 0.3;
+    --input-foreground: 220 20% 30%;
+    --ring: 210 90% 65%;
+    --radius: 1rem; /* Softer, larger radius */
+    --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2); /* Softer shadow */
+    --shadow-lg: 0 12px 40px 0 rgba(31, 38, 135, 0.25);
+    --shadow-inset: inset 0 1px 2px 0 rgba(255, 255, 255, 0.5);
+    --font-sans: 'Poppins', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Poppins', sans-serif;
+  }
+
+  /* 3. Dark Luxe */
+  html[data-theme="dark-luxe"] {
+    --background: 220 15% 10%; /* Very Dark Blue/Black */
+    --foreground: 210 20% 85%; /* Off-White */
+    --card: 220 15% 15%; /* Dark Gray */
+    --card-foreground: 210 20% 85%;
+    --popover: 220 15% 12%;
+    --popover-foreground: 210 20% 85%;
+    --primary: 45 80% 60%; /* Gold */
+    --primary-foreground: 220 20% 10%;
+    --secondary: 210 80% 65%; /* Royal Blue */
+    --secondary-foreground: 210 20% 95%;
+    --accent: 45 70% 50%; /* Darker Gold */
+    --accent-foreground: 220 20% 10%;
+    --muted: 220 10% 30%;
+    --muted-foreground: 220 10% 60%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 45 50% 40%; /* Goldish Border */
+    --input: 220 15% 20%;
+    --input-foreground: 210 20% 80%;
+    --ring: 45 80% 65%;
+    --radius: 0.375rem; /* Sharper radius */
+    --shadow: 0 4px 10px -3px hsla(var(--primary), 0.2), 0 2px 6px -2px hsla(var(--primary), 0.1); /* Subtle shadow */
+    --shadow-lg: 0 10px 25px -5px hsla(var(--primary), 0.25), 0 8px 10px -6px hsla(var(--primary), 0.15);
+    --shadow-inset: inset 0 1px 2px 0 hsla(0, 0%, 0%, 0.2);
+    --font-sans: 'Merriweather', serif; /* Serif font */
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Merriweather', serif;
+  }
+
+   /* 4. Pastel Dream */
+  html[data-theme="pastel-dream"] {
+    --background: 300 100% 98%; /* Very light lavender */
+    --foreground: 260 20% 40%; /* Muted purple text */
+    --card: 0 0% 100%;
+    --card-foreground: 260 20% 40%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 260 20% 40%;
+    --primary: 330 90% 75%; /* Soft Pink */
+    --primary-foreground: 330 50% 20%;
+    --secondary: 200 90% 75%; /* Sky Blue */
+    --secondary-foreground: 200 50% 20%;
+    --accent: 150 80% 70%; /* Mint Green */
+    --accent-foreground: 150 50% 20%;
+    --muted: 300 20% 92%; /* Light Grayish Lavender */
+    --muted-foreground: 300 10% 60%;
+    --destructive: 0 80% 75%; /* Soft Red */
+    --destructive-foreground: 0 50% 20%;
+    --border: 330 50% 85%; /* Light Pink Border */
+    --input: 300 50% 95%;
+    --input-foreground: 260 20% 40%;
+    --ring: 330 90% 80%;
+    --radius: 1.5rem; /* Very Rounded */
+    --shadow: 0 6px 15px -3px hsla(var(--primary), 0.15); /* Soft, diffused shadow */
+    --shadow-lg: 0 10px 25px -5px hsla(var(--primary), 0.2);
+    --shadow-inset: inset 0 1px 1px 0 hsla(0, 0%, 0%, 0.05);
+    --font-sans: 'Comfortaa', cursive; /* Rounded font */
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Comfortaa', cursive;
+  }
+
+  /* 5. Retro Terminal */
+  html[data-theme="retro-terminal"] {
+    --background: 0 0% 4%; /* Black */
+    --foreground: 120 100% 70%; /* Bright Green */
+    --card: 0 0% 8%;
+    --card-foreground: 120 100% 70%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 120 100% 70%;
+    --primary: 120 100% 70%; /* Green */
+    --primary-foreground: 0 0% 4%;
+    --secondary: 120 70% 50%; /* Darker Green */
+    --secondary-foreground: 0 0% 4%;
+    --accent: 120 100% 85%; /* Lighter Green */
+    --accent-foreground: 0 0% 4%;
+    --muted: 120 20% 20%;
+    --muted-foreground: 120 30% 50%;
+    --destructive: 0 80% 60%; /* Red for errors */
+    --destructive-foreground: 0 0% 100%;
+    --border: 120 60% 40%;
+    --input: 0 0% 10%;
+    --input-foreground: 120 100% 70%;
+    --ring: 120 100% 75%;
+    --radius: 0.125rem; /* Sharp corners */
+    --shadow: none; /* No shadows */
+    --shadow-lg: none;
+    --shadow-inset: none;
+    --font-sans: 'Roboto Mono', monospace; /* Monospace for everything */
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Press Start 2P', cursive; /* Pixel font for headings */
+  }
+
+  /* 6. Minimal Light */
+  html[data-theme="minimal-light"] {
+    --background: 0 0% 100%; /* White */
+    --foreground: 240 10% 3.9%; /* Almost Black */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 210 90% 55%; /* Standard Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 94%; /* Light Gray */
+    --secondary-foreground: 240 5% 35%;
+    --accent: 210 80% 65%; /* Lighter Blue */
+    --accent-foreground: 240 10% 3.9%;
+    --muted: 220 15% 96%; /* Very Light Gray */
+    --muted-foreground: 240 5% 65%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%; /* Light Gray Border */
+    --input: 0 0% 100%;
+    --input-foreground: 240 10% 3.9%;
+    --ring: 210 90% 60%;
+    --radius: 0.5rem; /* Standard radius */
+    --shadow: none; /* Flat design */
+    --shadow-lg: none;
+    --shadow-inset: none;
+    --font-sans: 'Poppins', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Poppins', sans-serif;
+  }
+
+  /* 7. Sunset Gradient */
+  html[data-theme="sunset-gradient"] {
+    --background: 30 80% 95%; /* Very Light Peach */
+    --foreground: 20 30% 30%; /* Dark Brownish Text */
+    --card: 0 0% 100% / 0.7; /* Slightly transparent white */
+    --card-foreground: 20 30% 30%;
+    --popover: 0 0% 100% / 0.9;
+    --popover-foreground: 20 30% 30%;
+    --primary: 25 95% 60%; /* Orange */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 330 90% 65%; /* Pink */
+    --secondary-foreground: 0 0% 100%;
+    --accent: 270 80% 60%; /* Purple */
+    --accent-foreground: 0 0% 100%;
+    --muted: 30 40% 90%; /* Light Peach */
+    --muted-foreground: 30 20% 50%;
+    --destructive: 0 80% 65%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 25 80% 75%; /* Peach Border */
+    --input: 0 0% 100% / 0.5;
+    --input-foreground: 20 30% 30%;
+    --ring: 25 95% 65%;
+    --radius: 0.75rem;
+    --shadow: 0 8px 20px -5px hsla(var(--primary), 0.25); /* Warm shadow */
+    --shadow-lg: 0 12px 30px -8px hsla(var(--secondary), 0.3);
+    --shadow-inset: inset 0 1px 2px 0 hsla(0, 0%, 100%, 0.5);
+    --font-sans: 'Poppins', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Poppins', sans-serif; /* Bold display */
+  }
+
+   /* 8. Matrix Code */
+  html[data-theme="matrix-code"] {
+    --background: 120 5% 2%; /* Very dark green-black */
+    --foreground: 130 100% 65%; /* Matrix Green */
+    --card: 120 10% 5%;
+    --card-foreground: 130 100% 65%;
+    --popover: 120 10% 4%;
+    --popover-foreground: 130 100% 65%;
+    --primary: 130 100% 65%; /* Green */
+    --primary-foreground: 120 10% 5%;
+    --secondary: 130 70% 45%; /* Darker Green */
+    --secondary-foreground: 120 10% 5%;
+    --accent: 130 100% 80%; /* Lighter Green */
+    --accent-foreground: 120 10% 5%;
+    --muted: 130 15% 15%;
+    --muted-foreground: 130 30% 45%;
+    --destructive: 0 80% 60%; /* Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 130 60% 35%;
+    --input: 120 10% 8%;
+    --input-foreground: 130 100% 65%;
+    --ring: 130 100% 70%;
+    --radius: 0; /* No radius */
+    --shadow: 0 0 8px 1px hsla(var(--primary), 0.4); /* Green glow */
+    --shadow-lg: 0 0 15px 3px hsla(var(--primary), 0.5);
+    --shadow-inset: none;
+    --font-sans: 'Roboto Mono', monospace;
+    --font-mono: 'Roboto Mono', monospace;
+    --font-display: 'Roboto Mono', monospace; /* Use mono for headings too */
+  }
+
+
+  /* Base body styles using variables */
+  body {
+    @apply font-sans min-h-screen overflow-x-hidden antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground)); /* Apply default text color */
+    font-family: var(--font-sans); /* Apply default font */
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth theme transition */
+  }
+
+  /* --- Shadcn Component Base Styles using CSS Vars --- */
+  /* These rely on tailwind.config.js mapping theme colors (primary, card, etc.) to CSS vars */
+
+  .card {
+    @apply border bg-card text-card-foreground; /* Use Tailwind classes mapped to CSS vars */
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    /* border-color: hsl(var(--border)); /* Tailwind 'border' class should handle this */
+  }
+
+  /* Base button styles (variants handled by Shadcn/Tailwind config) */
+  .button {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background;
+    border-radius: var(--radius);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* CORRECTED Input & Textarea base styles */
+  .input, .textarea {
+    /* Apply standard Tailwind utilities for border, focus ring, file input, etc. */
+    @apply flex h-10 w-full border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    /* Use CSS variables directly for background, text color, border */
+    background-color: hsl(var(--input));
+    color: hsl(var(--input-foreground));
+    border-color: hsl(var(--border));
+    border-radius: var(--radius);
+  }
+  .textarea { @apply h-auto min-h-[80px]; } /* Specific textarea height */
+
+  /* Style placeholder separately using pseudo-element */
+  .input::placeholder, .textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 1; /* Override browser defaults if needed */
+  }
+
+   /* Tooltip base style */
+   .tooltip-content {
+     @apply z-50 overflow-hidden px-3 py-1.5 text-xs animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2;
+     border-radius: var(--radius);
+     background-color: hsl(var(--popover));
+     color: hsl(var(--popover-foreground));
+     border: 1px solid hsl(var(--border));
+     box-shadow: var(--shadow);
+   }
+
+   /* Dialog base style */
+   .dialog-content {
+      @apply border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%];
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg); /* Use larger shadow for dialog */
+   }
+
+   /* Select base style */
+   .select-content {
+      @apply relative z-50 min-w-[8rem] overflow-hidden border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2;
+      border-radius: var(--radius);
+   }
+   .select-content [data-highlighted] {
+       @apply bg-accent text-accent-foreground outline-none; /* Use theme accent for highlighted item */
+   }
+   .select-item[data-state=checked] {
+       /* Optionally style checked item, maybe with primary color */
+       /* color: hsl(var(--primary)); */
+   }
+
+   /* Progress base style */
+   .progress {
+     @apply relative h-4 w-full overflow-hidden;
+     background-color: hsl(var(--muted));
+     border-radius: var(--radius);
+   }
+   .progress > div { /* Shadcn uses `[data-state="indeterminate"], [data-state="determinate"]` or similar, map to primary */
+     @apply h-full w-full flex-1 transition-all;
+     background-color: hsl(var(--primary));
+   }
+
+   /* Switch base style */
+   .switch {
+     @apply inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
+     border-radius: calc(var(--radius) * 2); /* Make switch extra rounded */
+     background-color: hsl(var(--input)); /* Use input background for unchecked */
+   }
+   .switch[data-state=checked] {
+     background-color: hsl(var(--primary)); /* Use primary for checked */
+   }
+   .switch > span { /* Thumb */
+     @apply pointer-events-none block h-5 w-5 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0;
+     background-color: hsl(var(--background)); /* Use main background for thumb */
+   }
+
+   /* Headings use display font */
+   h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-display, var(--font-sans));
+      font-weight: 700; /* Example: Make headings bold by default */
+      margin-bottom: 0.5em; /* Consistent spacing */
+   }
+   h1 { @apply text-3xl md:text-4xl; }
+   h2 { @apply text-2xl md:text-3xl; }
+   h3 { @apply text-xl md:text-2xl; }
+
 }
 
-/* Utilities */
+/* --- Utilities Layer --- */
 @layer utilities {
-  /* Glassmorphism Effect */
+  /* Glassmorphism Effect (Using CSS Vars & supports) */
   .glassmorphism {
-    @apply bg-dark/70 backdrop-blur-md border border-light/10 shadow-lg;
+    border: 1px solid hsla(var(--border), 0.3); /* Default border */
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
+    background-color: hsla(var(--card), 0.6); /* Default background */
+    color: hsl(var(--card-foreground));
+    /* Apply backdrop-filter conditionally using @supports */
+    @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+      /* Set the CSS property directly, not via @apply */
+      backdrop-filter: blur(16px); /* Value corresponding to blur-lg */
+      -webkit-backdrop-filter: blur(16px); /* Include -webkit prefix */
+      background-color: hsla(var(--card), 0.4); /* More transparent if blur supported */
+    }
   }
-  .bg-dark {
-    background-color: theme('colors.dark');
-  }
-  /* Gradient Text Effect */
+   /* Theme specific glassmorphism overrides */
+   html[data-theme="glassmorphism"] .glassmorphism {
+    background-color: hsla(var(--card), 0.4);
+    border-color: hsla(var(--border), 0.5);
+    @supports (backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px)) {
+      /* Set the CSS property directly */
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background-color: hsla(var(--card), 0.3); /* Even more transparent */
+    }
+ }
+
+ /* Disable glass effect for specific themes */
+ html[data-theme="minimal-light"] .glassmorphism,
+ html[data-theme="retro-terminal"] .glassmorphism {
+   @apply shadow-none border bg-card; /* Apply necessary overrides */
+   /* Explicitly remove backdrop-filter if needed */
+   backdrop-filter: none;
+   -webkit-backdrop-filter: none;
+ }
+
+  /* Gradient Text Effect (Using CSS Vars) */
   .gradient-text {
-    @apply bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text;
+    @apply bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--secondary))] to-[hsl(var(--accent))] text-transparent bg-clip-text;
   }
 
-  /* Pulse Animation */
-  .pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* Pulse Animation (Using CSS Vars) */
+  .pulse-primary { animation: pulse-primary 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  .pulse-secondary { animation: pulse-secondary 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+  @keyframes pulse-primary {
+    0%, 100% { box-shadow: 0 0 0 0 hsla(var(--primary), 0); }
+    50% { box-shadow: 0 0 0 8px hsla(var(--primary), 0.5); }
   }
-
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 theme('colors.blue.500/70');
-    }
-    70% {
-      box-shadow: 0 0 0 10px theme('colors.blue.500/0');
-    }
-    100% {
-      box-shadow: 0 0 0 0 transparent;
-    }
+  @keyframes pulse-secondary {
+    0%, 100% { box-shadow: 0 0 0 0 hsla(var(--secondary), 0); }
+    50% { box-shadow: 0 0 0 8px hsla(var(--secondary), 0.5); }
   }
+  html[data-theme="minimal-light"] .pulse-primary,
+  html[data-theme="minimal-light"] .pulse-secondary { animation: none; }
+
+  /* Glow Effect (Using CSS Vars) */
+  .glow-primary { text-shadow: 0 0 8px hsla(var(--primary), 0.7); }
+  .glow-secondary { text-shadow: 0 0 8px hsla(var(--secondary), 0.7); }
+  .glow-accent { text-shadow: 0 0 8px hsla(var(--accent), 0.7); }
+  html[data-theme="minimal-light"] .glow-primary,
+  html[data-theme="minimal-light"] .glow-secondary,
+  html[data-theme="minimal-light"] .glow-accent { text-shadow: none; }
 
 
-  /* Glow Effect */
-  .glow {
-    @apply text-shadow-[0_0_10px_theme(colors.blue.500/70)];
-  }
-
-  /* Holographic Effect */
+  /* Holographic Effect (Using CSS Vars) */
   .holographic {
-    @apply relative overflow-hidden bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-light/20;
+    @apply relative overflow-hidden border;
+    background-color: hsla(var(--card), 0.8); /* Slightly more opaque base */
+    border-color: hsl(var(--border));
+    border-radius: var(--radius);
   }
-
   .holographic::before {
     content: '';
-    @apply absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-transparent via-light/10 to-transparent rotate-30;
-    animation: shine 3s linear infinite;
+    @apply absolute top-[-50%] left-[-50%] w-[200%] h-[200%];
+    background-image: linear-gradient(
+      135deg,
+      transparent 30%,
+      hsla(var(--primary), 0.15) 45%,
+      hsla(var(--secondary), 0.1) 50%,
+      hsla(var(--accent), 0.15) 55%,
+      transparent 70%
+    );
+    transform: rotate(30deg);
+    animation: shine 4s linear infinite; /* Slightly slower */
+    pointer-events: none; /* Ensure pseudo-element doesn't block interaction */
   }
+  html[data-theme="glassmorphism"] .holographic::before {
+     background-image: linear-gradient( 135deg, transparent 30%, hsla(0,0%,100%, 0.2) 50%, transparent 70% ); /* Simpler for glass */
+  }
+  html[data-theme="minimal-light"] .holographic { background-color: hsl(var(--card)); border-color: hsl(var(--border)); }
+  html[data-theme="minimal-light"] .holographic::before { content: none; }
+  html[data-theme="retro-terminal"] .holographic { background-color: hsl(var(--card)); border-color: hsl(var(--border)); }
+  html[data-theme="retro-terminal"] .holographic::before { content: none; }
+
 
   @keyframes shine {
-    0% {
-      transform: rotate(30deg) translate(-30%, -30%);
-    }
-    100% {
-      transform: rotate(30deg) translate(30%, 30%);
-    }
+    0% { transform: rotate(30deg) translate(-50%, -50%); }
+    100% { transform: rotate(30deg) translate(50%, 50%); }
   }
 
-  /* Drag and Drop Area */
+  /* Drag and Drop Area (Using CSS Vars) */
   .drag-drop-area {
-    @apply border-2 border-dashed border-light/30 transition-all duration-300;
+    @apply border-2 border-dashed transition-all duration-300;
+    border-color: hsl(var(--border));
+    border-radius: var(--radius);
   }
-
+  .drag-drop-area:hover {
+    border-color: hsl(var(--primary));
+    background-color: hsla(var(--primary), 0.05);
+  }
   .drag-drop-area.active {
-    @apply border-blue-500 bg-blue-500/10 ;
+    border-color: hsl(var(--primary));
+    background-color: hsla(var(--primary), 0.1);
+    border-style: solid;
   }
 
-  /* File Icon Hover */
-  .file-icon {
-    @apply transition-all duration-300;
-  }
-
+  /* File Icon Hover (Using CSS Vars) */
+  .file-icon { @apply transition-all duration-300; }
   .file-icon:hover {
-    @apply -translate-y-1 drop-shadow-[0_5px_10px_theme(colors.blue.500/50)];
+    @apply -translate-y-1;
+    filter: drop-shadow(0 5px 10px hsla(var(--primary), 0.4));
   }
+  html[data-theme="minimal-light"] .file-icon:hover { filter: none; @apply scale-110; }
 
-  /* Chat Bubbles */
+
+  /* Chat Bubbles (Using CSS Vars) */
   .chat-bubble {
-    @apply relative rounded-xl p-4 my-4 max-w-[80%];
+    @apply relative p-3 my-2 max-w-[85%] shadow-md border text-sm leading-relaxed; /* Base bubble styles */
+    border-radius: var(--radius);
   }
-
   .user-bubble {
-    @apply bg-blue-500/20 border border-blue-500/50 self-end;
+    @apply bg-[hsl(var(--primary)/0.1)] border-[hsl(var(--primary)/0.5)] text-[hsl(var(--foreground))] self-end ml-auto; /* Ensure self-end pushes it right */
+    border-bottom-right-radius: 0.25rem; /* Specific corner rounding */
+  }
+  .ai-bubble {
+    @apply bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--card-foreground))] self-start mr-auto; /* Ensure self-start pushes it left */
+    border-bottom-left-radius: 0.25rem; /* Specific corner rounding */
   }
 
-  .ai-bubble {    
-    @apply bg-dark/70 border border-light/20 self-start; /* Corrected to use custom class */
+  /* Theme specific bubble overrides */
+  html[data-theme="cyberpunk"] .user-bubble {
+     @apply bg-blue-950/50 border-blue-700/60 text-blue-200 rounded-br-none;
   }
+  html[data-theme="cyberpunk"] .ai-bubble {
+      @apply bg-black/40 border-cyan-700/50 text-cyan-200 rounded-bl-none;
+   }
+   html[data-theme="retro-terminal"] .chat-bubble { @apply rounded-none shadow-none; }
+   html[data-theme="retro-terminal"] .user-bubble { @apply bg-transparent border-[hsl(var(--primary))] text-[hsl(var(--primary))]; }
+   html[data-theme="retro-terminal"] .ai-bubble { @apply bg-transparent border-[hsl(var(--muted))] text-[hsl(var(--foreground))]; }
+   html[data-theme="minimal-light"] .chat-bubble { @apply shadow-sm; } /* Subtle shadow */
 
-  /* Badge Styles */
-  .badge {
-    @apply inline-block px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wide;
-  }
 
-  .badge-beginner {
-    @apply bg-green-500/20 text-green-500 border border-green-500;
-  }
+  /* Badge Styles (Using CSS Vars) */
+  .badge { @apply inline-block px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border; border-radius: calc(var(--radius) * 1.5); }
 
-  .badge-intermediate {
-    @apply bg-yellow-500/20 text-yellow-500 border border-yellow-500;
-  }
+  .badge-beginner { @apply bg-[hsl(120,70%,40%/0.15)] text-[hsl(120,80%,40%)] border-[hsl(120,70%,40%/0.5)]; }
+  .badge-intermediate { @apply bg-[hsl(45,90%,50%/0.15)] text-[hsl(45,90%,50%)] border-[hsl(45,90%,50%/0.5)]; }
+  .badge-advanced { @apply bg-[hsl(0,80%,60%/0.15)] text-[hsl(0,80%,60%)] border-[hsl(0,80%,60%/0.5)]; }
 
-  .badge-advanced {
-    @apply bg-red-500/20 text-red-500 border border-red-500;
-  }
-
-  /* Tooltip */
-  .tooltip-container {
-    @apply relative;
-  }
-
-  .tooltip-container::after {
-    content: attr(data-tooltip);
-    @apply absolute bottom-full left-1/2 -translate-x-1/2 bg-dark/90 text-white px-4 py-2 rounded-md text-sm whitespace-nowrap opacity-0 invisible transition-all duration-200 z-10 border border-light/10;
-  }
-
-  .tooltip-container:hover::after {
-    @apply opacity-100 visible bottom-[calc(100%_+_5px)];
-  }
-
-  /* Avatar */
+  /* Avatar (Using CSS Vars) */
   .avatar {
-    @apply w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold relative;
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-white font-bold relative overflow-hidden;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    border-radius: 9999px;
   }
-
   .avatar::after {
     content: '';
-    @apply absolute top-[-2px] left-[-2px] right-[-2px] bottom-[-2px] rounded-full bg-gradient-to-br from-blue-500 to-purple-500 z-[-1] opacity-50;
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    @apply absolute inset-[-2px] rounded-full z-[-1] opacity-50;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    border-radius: 9999px;
+    animation: pulse-primary 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
   }
+   html[data-theme="minimal-light"] .avatar { @apply border border-border; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+   html[data-theme="minimal-light"] .avatar::after { content: none; }
+
 
   /* Floating Animation */
-  .floating {
-    animation: floating 3s ease-in-out infinite;
-  }
-
+  .floating { animation: floating 3s ease-in-out infinite; }
   @keyframes floating {
-    0% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-    100% {
-      transform: translateY(0);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
   }
+  html[data-theme="retro-terminal"] .floating { animation: none; }
 
   /* Page Transitions */
-  .page {
-    @apply hidden;
-  }
-
-  .page.active {
-    @apply block;
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
+  /* Keyframes used by AnimatePresence variants in React */
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(5px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
-}
 
+  /* --- Theme Specific Utilities --- */
+
+  /* Sunset Gradient Button Example */
+  html[data-theme="sunset-gradient"] .button-primary-gradient {
+     @apply bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--secondary))] text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105;
+     border-radius: var(--radius);
+  }
+
+  /* Retro Terminal Blinking Cursor Example */
+  html[data-theme="retro-terminal"] .blinking-cursor::after {
+    content: '_';
+    animation: blink 1s step-start infinite;
+    font-weight: bold;
+    margin-left: 2px;
+    color: hsl(var(--primary)); /* Use theme color */
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Grid Background Utility */
+  .bg-grid {
+    background-size: 30px 30px;
+    background-image: linear-gradient(to right, hsla(var(--border), 0.5) 1px, transparent 1px),
+                      linear-gradient(to bottom, hsla(var(--border), 0.5) 1px, transparent 1px);
+  }
+  html[data-theme="minimal-light"] .bg-grid {
+    background-image: linear-gradient(to right, hsla(var(--border), 0.8) 1px, transparent 1px),
+                      linear-gradient(to bottom, hsla(var(--border), 0.8) 1px, transparent 1px);
+  }
+
+  /* Scrollbar Styling (Using CSS Vars) */
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsla(var(--primary), 0.4);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: hsla(var(--primary), 0.6); }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsla(var(--primary), 0.4) transparent; }
+
+   html[data-theme="minimal-light"] .scrollbar-thin::-webkit-scrollbar-thumb { background-color: hsla(var(--muted-foreground), 0.5); }
+   html[data-theme="minimal-light"] .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: hsla(var(--muted-foreground), 0.7); }
+   html[data-theme="minimal-light"] .scrollbar-thin { scrollbar-color: hsla(var(--muted-foreground), 0.5) transparent; }
+
+   html[data-theme="retro-terminal"] .scrollbar-thin::-webkit-scrollbar { width: 10px; }
+   html[data-theme="retro-terminal"] .scrollbar-thin::-webkit-scrollbar-thumb { background-color: hsl(var(--primary)); border-radius: 0; border: 1px solid hsl(var(--background)); background-clip: padding-box; }
+   html[data-theme="retro-terminal"] .scrollbar-thin { scrollbar-color: hsl(var(--primary)) hsl(var(--background)); }
+
+}

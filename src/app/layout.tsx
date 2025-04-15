@@ -1,45 +1,58 @@
-'use client'
-import {Geist, Geist_Mono} from 'next/font/google';
-import {useEffect} from 'react';
-import {v4 as uuidv4} from 'uuid';
+// src/app/layout.tsx
+'use client';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import './globals.css';
-import { metadata } from './layout-metadata';
-  
-const geistSans = Geist({  
+// Remove metadata export from Client Component
+// import { metadata } from './layout-metadata';
+import { useThemeStore } from '@/hooks/useThemeStore'; // Import the store hook
+
+const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({  
+const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 });
 
-export default function RootLayout({  
+export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;  
+  children: React.ReactNode;
 }>) {
+  // Initialize the theme store hook. This triggers the rehydration logic
+  // within the store, which will apply the theme attribute via effects.
+  // We don't necessarily need to *read* the theme state here unless
+  // other logic in this component depends on it.
+  useThemeStore();
+
   useEffect(() => {
-    // Check if a user ID already exists in localStorage
+    // User ID logic - This is fine, it's client-side only
     let userId = localStorage.getItem('userId');
-
     if (!userId) {
-      // If not, generate a new one
       userId = uuidv4();
-
-      // Store it in localStorage
       localStorage.setItem('userId', userId);
     }
-
     console.log('User ID:', userId);
-  }, []);
+
+    // Theme application is handled by useThemeStore's persistence logic.
+    // No need to manually set documentElement.setAttribute here.
+
+  }, []); // Run only on mount
+
+  // Render the <html> tag.
+  // DO NOT set data-theme directly here based on the initial store state.
+  // Add suppressHydrationWarning to tell React that the difference
+  // in the 'data-theme' attribute between server/client is expected
+  // and should be ignored during the initial hydration.
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
   );
 }
-
