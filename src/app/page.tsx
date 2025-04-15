@@ -73,7 +73,7 @@ export default function Home(props: HomeProps) {
 
         {/* Header */}
         <Header
-          xp={xp}
+          xp={xp},
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           currentTheme={theme}
