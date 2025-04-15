@@ -1,5 +1,5 @@
 // next.config.js
-import type { NextConfig } from 'next/types';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* Existing config options */
@@ -10,17 +10,21 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  /* Add the webpack configuration */
+  /* Add/Modify the webpack configuration */
   webpack: (config, { isServer, webpack }) => {
-    // Apply this rule only to the client-side bundle
-    if (!isServer) {
-      // Resolve 'react-native-fs' to false to prevent the error
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'react-native-fs': false,
-      };
 
-      // Provide fallbacks for Node.js core modules (good practice)
+    // --- Use externals to ignore the problematic require ---
+    // This configuration applies to both server and client builds,
+    // effectively telling Webpack "don't worry about this module".
+    config.externals = {
+      ...config.externals, // Keep existing externals if any
+      'react-native-fs': 'commonjs react-native-fs', // Treat it as an external commonjs module
+    };
+    // --- End externals configuration ---
+
+
+    // It's still good practice to keep fallbacks for client build
+    if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -32,5 +36,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Use export default consistently with your original file
 export default nextConfig;
