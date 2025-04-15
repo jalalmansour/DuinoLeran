@@ -1,268 +1,166 @@
 // src/components/upload/UploadArea.tsx
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react'; // Removed useEffect as it's not used
 import { useDropzone } from 'react-dropzone';
-import {
-  File as FileIconLucide,
-  Upload,
-  Code,
-  BookOpen,
-  ImageIcon,
-  FileZip,
-  Music,
-  VideoIcon
-} from 'lucide-react';
+import { Upload } from 'lucide-react'; // Only Upload icon needed here
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// Removed Card imports as we're styling the div directly
 import { cn } from '@/lib/utils';
 
-interface UploadedFile {
+// Simplified UploadedFile stub - parent handles the real one
+interface BasicFileInfo {
   id: string;
   name: string;
   type: string;
   size: number;
   lastModified: number;
-  content: string;
+  // Content is not handled here anymore
 }
 
 interface UploadAreaProps {
-  onFileUploaded: (file: UploadedFile) => void;
+  // Expecting a function that likely takes the basic info or the File object
+  onFileUploaded: (fileInfo: BasicFileInfo) => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
-
-const getFileIcon = (fileName: string): React.ElementType => {
-  const fileExtension = fileName.split('.').pop()?.toLowerCase();
-  switch (fileExtension) {
-    case 'pdf': return BookOpen;
-    case 'docx': case 'doc': return FileIconLucide;
-    case 'pptx': case 'ppt': return FileIconLucide;
-    case 'txt': return FileIconLucide;
-    case 'py': case 'js': case 'jsx': case 'ts': case 'tsx': case 'html': case 'css': case 'json': case 'md': case 'c': case 'cpp': case 'java': case 'go': return Code;
-    case 'jpg': case 'jpeg': case 'png': case 'gif': case 'svg': case 'webp': return ImageIcon;
-    case 'zip': return FileZip;
-    case 'mp3': case 'wav': case 'ogg': return Music;
-    case 'mp4': case 'avi': case 'mov': case 'webm': return VideoIcon;
-    default: return FileIconLucide;
-  }
-};
 const MAX_FILE_SIZE_MB = 50;
+
 const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { toast } = useToast();
 
-  const processFile = async (file: File, path?: string) => {
-    return new Promise<UploadedFile | null>((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(progress);
-        }
+  // Simplified readFile - just gets basic info, parent does heavy lifting
+  const readFileInfo = async (file: File): Promise<BasicFileInfo | null> => {
+    return new Promise((resolve, reject) => {
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        toast({ title: 'File Too Large', description: `File size exceeds ${MAX_FILE_SIZE_MB}MB.`, variant: 'destructive' });
+        return reject(new Error('File too large'));
       }
-      reader.onloadstart = () => {
-        setUploadProgress(0);
-      };
 
-      reader.onload = async (e) => {
-        try {
-          let content: string;
+      // Simulate minimal progress for selection/basic read
+      setUploadProgress(5); // Indicate something happened
 
-          if (file.type.startsWith('text/')) {
-            content = e.target?.result as string;
+      // Resolve immediately with basic info
+      resolve({
+        id: generateId(),
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        lastModified: file.lastModified,
+      });
+    });
+  };
 
-          } else if (file.type === 'application/pdf' || file.type === 'application/json' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/vnd.oasis.opendocument.text' || file.type === 'application/rtf') {
-            content = e.target?.result as string;
-          } else {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-            const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-            content = `data:${file.type};base64,${base64String}`;
-           }
-
-          const newFile: UploadedFile = {
-            id: generateId(),
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            lastModified: file.lastModified,
-            content: content,
-          };
-
-          resolve(newFile);
-
-        } catch (error: any) {
-          console.error('Error processing file:', error);
-          toast({
-            title: 'Error Processing File',
-            description: error.message || 'Could not process the uploaded file.',
-            variant: 'destructive',
-          });
-          setUploadProgress(null);
-          reject(null)
-        }
-      };
-
-      reader.onerror = (error) => {
-        console.error('FileReader Error:', error);
-        toast({
-          title: 'Error Reading File',
-          description: 'Could not read the selected file.',
-          variant: 'destructive',
-        });
-        setUploadProgress(null);
-        reject(null);
-      };
-
-      if (file.type.startsWith('text/') || file.type === 'application/json' || file.type ==='application/pdf' || file.type ==='application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type ==='application/vnd.oasis.opendocument.text' || file.type === 'application/rtf') {
-        reader.readAsText(file);
-      } else {
-        reader.readAsArrayBuffer(file); }
-    })
-  }
-  const traverseFileTree = async (item: any, path?: string) => {
-    path = path || '';
+  // traverseFileTree remains similar but calls readFileInfo
+  const traverseFileTree = async (item: any, path = '') => {
     if (item.isFile) {
-      // Get file
-      item.file((file: File) => {        
-
-        processFile(file, path).then(async newFile => {
-          if (newFile) {
-
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-              toast({
-                title: 'Error: User ID Not Found',
-                description: 'Could not retrieve user ID from browser storage.',
-                variant: 'destructive',
-              });
-              console.error('Error: User ID not found in localStorage');
-              return;
-            }
-
-            fetch('/api/upload', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-user-id': userId,
-              },
-            }).then(() => {
-              onFileUploaded(newFile);
-              toast({
-                title: 'File Uploaded',
-                description: `Successfully uploaded ${file.name}.`,
-              });
-              body: JSON.stringify(newFile),
-            }).catch((error) => {
-              console.error('Error sending file to server:', error);
-            });
+      item.file(async (file: File) => {
+        try {
+          const fileInfo = await readFileInfo(file);
+          if (fileInfo) {
+            onFileUploaded(fileInfo); // Pass basic info up
+            setUploadProgress(null); // Clear progress after passing up
           }
-        });
+        } catch (error: any) {
+          console.error('Error processing file entry:', error);
+          toast({ title: 'Error Processing File', variant: 'destructive' });
+          setUploadProgress(null);
+        }
       });
     } else if (item.isDirectory) {
-      // Get folder contents
       const dirReader = item.createReader();
       dirReader.readEntries(async (entries: any[]) => {
         for (let i = 0; i < entries.length; i++) {
           await traverseFileTree(entries[i], path + item.name + '/');
         }
-
-
+        setUploadProgress(null); // Clear progress when directory scan finishes
       });
     }
   };
 
   const onDrop = useCallback(
-    async (acceptedFiles: any) => {
+    async (acceptedFiles: File[]) => {
+      if (acceptedFiles?.length) {
+        // For simplicity, handle only the first item if multiple selected/dropped
+        // To handle multiple, you'd loop and call onFileUploaded for each.
+        const fileOrEntry = acceptedFiles[0];
+        setUploadProgress(0); // Reset progress
 
-      if (acceptedFiles && acceptedFiles.length) {
+        const entry = fileOrEntry.webkitGetAsEntry ? fileOrEntry.webkitGetAsEntry() : null;
 
-        for (let i = 0; i < acceptedFiles.length; i++) {
-          const file = acceptedFiles[i];
-
-          const entry = file.webkitGetAsEntry();
-          if (entry) {
-            traverseFileTree(entry)
-          } else {
-
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-              toast({ title: 'Error: User ID Not Found', description: 'Could not retrieve user ID from browser storage.', variant: 'destructive' });
-              console.error('Error: User ID not found in localStorage'); return;
+        if (entry && entry.isDirectory) {
+          await traverseFileTree(entry);
+        } else {
+          // Handle single file
+          try {
+            const fileInfo = await readFileInfo(fileOrEntry);
+            if (fileInfo) {
+              onFileUploaded(fileInfo); // Pass basic info up
             }
-            if (file) {
-              if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-                toast({ title: 'File Too Large', description: `File size exceeds the limit of ${MAX_FILE_SIZE_MB}MB.`, variant: 'destructive' });
-                continue;
-              }
-              processFile(file).then(newFile => {
-                if (newFile) {
-                  fetch('/api/upload', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'x-user-id': userId,
-                    },
-
-                    body: JSON.stringify(newFile),
-                  }).then(() => {
-                    onFileUploaded(newFile);
-                    toast({ title: 'File Uploaded', description: `Successfully uploaded ${file.name}.`, });
-                  }).catch((error) => {
-                    console.error('Error sending file to server:', error);
-                  });
-                }
-              });
-            }
+          } catch (error: any) {
+            console.error('Error processing file:', error);
+             // readFileInfo should handle its own toast
+          } finally {
+              setUploadProgress(null); // Clear progress after attempt
           }
         }
       }
-
     },
-    [toast, onFileUploaded]
+    [toast, onFileUploaded] // Dependencies
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: true, accept: undefined
+    multiple: true, // Still allow dropping multiple/folders
   });
+
   return (
-    <Card className="flex-1 overflow-hidden">
-      <div
-        {...getRootProps()}
-        className={cn(
-          "flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-          isDragActive
-            ? "bg-accent"
-            : "border-muted hover:bg-secondary"
-        )}
-      >
-        <input {...getInputProps()} />
-        <CardHeader className="text-center">
-          <Upload className="h-10 w-10 text-muted-foreground mb-3" />
-          {isDragActive ? (
-            <CardTitle className="text-lg">Drop the file here...</CardTitle>
-          ) : (
-            <div className="text-center">
-              <CardTitle className="text-lg">
-                Drag &amp; drop file here, or click to select
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                You can drag and drop any type of files here or click to select.
-              </p>
-            </div>
-          )}
-        {uploadProgress !== null && uploadProgress >= 0 && (
-          <div className="w-full mt-4">
-            <Progress value={uploadProgress} />
-            <p className="text-sm text-muted-foreground mt-1 text-right">
-              {uploadProgress}%
-            </p>
-          </div>
-        )}
-        </CardHeader>
+    // Removed the Card wrapper, styling the main div directly
+    <div
+      {...getRootProps()}
+      // Apply styles to match the image's dropzone
+      className={cn(
+        "flex flex-col items-center justify-center p-12", // Padding and alignment
+        "rounded-lg cursor-pointer transition-all duration-300", // Base styles
+        "border-2 border-dashed", // Dashed border
+        // Theme-specific styles (assuming Cyberpunk theme vars)
+        "bg-[hsl(var(--secondary)/0.15)]", // Light purple background (adjust var/opacity)
+        "border-[hsl(var(--primary))] ", // Cyan dashed border
+        "text-[hsl(var(--muted-foreground))]", // Muted text color
+        isDragActive
+          ? "border-solid ring-2 ring-offset-1 ring-[hsl(var(--primary))] bg-[hsl(var(--secondary)/0.25)]" // Active state: solid border, ring, slightly darker bg
+          : "hover:border-solid hover:bg-[hsl(var(--secondary)/0.20)]" // Hover state: solid border, slightly darker bg
+      )}
+      style={{ minHeight: '250px' }} // Set a minimum height like in the image
+    >
+      <input {...getInputProps()} />
+      <div className="text-center">
+        {/* Use Upload icon from lucide-react */}
+        <Upload
+            className={cn(
+                "h-12 w-12 mx-auto mb-4 transition-transform duration-200",
+                isDragActive ? "scale-110 text-[hsl(var(--primary))]" : "text-[hsl(var(--primary)/0.7)]" // Make icon cyan, brighter on drag
+            )}
+        />
+        {/* Text matching the image */}
+        <p className={cn(
+            "text-lg font-semibold",
+             isDragActive ? "text-[hsl(var(--foreground))]" : "text-[hsl(var(--foreground))/0.9]" // Text slightly brighter on drag
+             )}>
+          Drag & drop files or folders here
+        </p>
+        <p className="text-sm text-muted-foreground mt-1">
+           or click to select items
+        </p>
       </div>
-    </Card>
+      {/* Display minimal progress indicator */}
+      {uploadProgress !== null && uploadProgress >= 0 && uploadProgress <= 10 && (
+        <div className="w-full max-w-xs mx-auto mt-6">
+          <Progress value={uploadProgress * 10} className="h-1 [&>div]:bg-[hsl(var(--primary))]" />
+          {/* Optional: <p className="text-xs text-muted-foreground mt-1 text-center">Selecting...</p> */}
+        </div>
+      )}
+    </div>
   );
 };
 
