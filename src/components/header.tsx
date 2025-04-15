@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress"; // Import Progress
 import { BookOpen, Settings, UploadCloud, History, HelpCircle, Palette, Star, Menu, X, Loader2 } from 'lucide-react'; // Added Menu, X, Loader2
 // Import useHasHydrated along with other theme store items
 import { type ThemeId, type themes as themeOptions, useHasHydrated } from '@/hooks/useThemeStore';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export type ActiveTabValue = "upload" | "history" | "settings" | "faq";
 
@@ -36,7 +38,6 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
       children,
       className, // Keep className to apply to the motion.header
       // All OTHER props (like 'id', 'style', etc.) intended for the DOM element
-      // will be captured in 'domProps'
       ...domProps
     },
     ref
@@ -92,27 +93,12 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
     return (
       
         
-          <motion.header
-            ref={ref}
-            // Apply className and ONLY the remaining domProps to the actual DOM element
-            className={cn(
-              "fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300",
-              "bg-[hsl(var(--background)/0.8)] backdrop-blur-lg border-[hsl(var(--border)/0.5)]", // Themed background & border
-              className // Allow overriding classes
-            )}
-            initial={{ y: -80 }}
-            animate={{ y: 0 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-            {...domProps} // Spread ONLY DOM-valid props
-          >
-            <div className="container mx-auto flex items-center justify-between h-16 px-4 md:px-6">
-              {/* Left Side: Title */}
-              <div className="flex items-center flex-shrink-0 mr-4"> {/* Ensure title doesn't get pushed out */}
-                {children} {/* Render the title passed from page.tsx */}
-              </div>
-
-              {/* Center: Desktop Navigation Tabs - Themed */}
-              <nav className="hidden md:flex items-center space-x-1 bg-[hsl(var(--card)/0.5)] border border-[hsl(var(--border)/0.3)] rounded-full px-2 py-1 shadow-inner">
+          
+            
+              {children}
+            
+  
+              
                 {tabs.map((tab) => (
                   
                     
@@ -131,41 +117,24 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                     
                   
                 ))}
-              </nav>
-
-              {/* Right Side: XP, Theme Switcher, Mobile Menu Trigger */}
-              <div className="flex items-center space-x-2 md:space-x-4 ml-auto"> {/* Added ml-auto to push right */}
-
-                {/* Conditionally Render Theme Switcher */}
-                {!hasHydrated ? (
-                  // Placeholder: Render a div with similar dimensions to prevent layout shift
+              
+  
+              
+                
+                  {availableThemes.find(t => t.id === currentTheme)?.icon
+                    ?  {t.icon} 
+                    : }
+                
+  
+                
                   
                     
-                  
-                ) : (
-                  // Actual Select component (only rendered client-side after hydration)
-                  
-                    
-                      
-                        
-                          {availableThemes.find(t => t.id === currentTheme)?.icon
-                            ?  {t.icon} 
-                            : }
-                        
-                      
-                    
-                    
-                      
-                        
-                          {t.icon} {t.name}
-                        
-                      
+                      {t.icon} {t.name}
                     
                   
-                )}
-                {/* End Conditional Render */}
-
-                {/* XP Display - Themed */}
+                
+              
+  
                 
                   
                     
@@ -178,28 +147,25 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                     
                   
                 
-
-                {/* Mobile Menu Trigger */}
+  
                 
                   
                     {isMenuOpen ?  : }
                   
                 
-              </div>
-            </div>
-
-            {/* Mobile Menu Panel */}
+              
+            
+  
             
               
                 
-                  {tabs.map((tab) => (
+                  {tabs.map(tab => (
                     
                       
                           {tab.label}
                       
                     
                   ))}
-                  {/* XP Display in Mobile Menu */}
                   
                     
                       
@@ -213,8 +179,8 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                 
               
             
-
-          </motion.header>
+  
+          
       
     );
   }
