@@ -56,7 +56,7 @@ const UploadInteract: React.FC<UploadInteractProps> = ({ uploadedFile, setUpload
       
       
         
-          Uploaded File: {uploadedFile?.name}
+          {`Uploaded File: ${uploadedFile?.name}`}
           Summary Section
         
       
