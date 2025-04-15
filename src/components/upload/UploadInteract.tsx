@@ -1,8 +1,15 @@
-// src/components/upload/UploadInteract.tsx
-import React, { useState, useCallback } from 'react';
-import UploadArea from '@/components/upload/UploadArea'; // Assuming this component exists and is imported
-// You might need to import SummarySection here if it's separate
-// import SummarySection from '@/components/summary/SummarySection';
+'use client';
+
+import React, { useState, useCallback, useEffect } from 'react';
+import UploadArea from '@/components/upload/UploadArea';
+import SummarySection from '@/components/summary/SummarySection';
+import ChatSection from '@/components/chat/ChatSection';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 // Define interfaces needed within this component or import them
 interface UploadedFile {
@@ -15,6 +22,11 @@ interface UploadedFile {
   contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface UploadInteractProps {
   uploadedFile: UploadedFile | null;
   setUploadedFile: (file: UploadedFile | null) => void;
@@ -22,11 +34,6 @@ interface UploadInteractProps {
   xp: number;
   setXp: (updater: number | ((prevXp: number) => number)) => void; // Allow updater function
   toast: any; // Replace 'any' with the correct type for your toast function
-  // Remove props that are likely managed in page.tsx unless needed here
-  // activeTab: string;
-  // uploadHistory: UploadedFile[];
-  // setUploadHistory: (history: UploadedFile[]) => void;
-  // setActiveTab: (tab: string) => void;
 }
 
 const UploadInteract: React.FC<UploadInteractProps> = ({
@@ -41,66 +48,101 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
   const [summary, setSummary] = useState<string>('');
   const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
   const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
-  // ... potentially chat history, etc.
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
 
   // Callback to handle the file upload from UploadArea
-  const handleFileUploaded = useCallback((file: UploadedFile) => {
+  const handleFileUploaded = useCallback(async (file: UploadedFile) => {
     setUploadedFile(file);
     saveUploadHistory(file); // Save to history using the passed function
     // Trigger analysis or other actions needed within this component
     // e.g., call a local summarize function or pass the file up if needed
     toast({ title: 'File Ready in Interact', description: file.name });
+
+    // Summarize the document after upload
+    setIsSummarizing(true);
+    try {
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileContent: file.content }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSummary(data.summary);
+      } else {
+        console.error('Failed to summarize document:', response.statusText);
+        toast({ title: 'Error', description: 'Failed to summarize document.', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Error during summarization:', error);
+      toast({ title: 'Error', description: 'Error during summarization.', variant: 'destructive' });
+    } finally {
+      setIsSummarizing(false);
+    }
   }, [setUploadedFile, saveUploadHistory, toast]); // Add dependencies
 
-  // Placeholder for Summary Section rendering logic
-  const renderSummarySection = () => {
-      if (!uploadedFile) return null;
-      // Replace with actual SummarySection component if available
-      return (
-         <div className="mt-4 p-4 border rounded bg-[hsl(var(--card)/0.5)]">
-            <h3 className="font-semibold text-[hsl(var(--primary))] mb-2">AI Analysis Placeholder</h3>
-            {isSummarizing ? (
-                <p className='text-sm italic text-[hsl(var(--muted-foreground))]'>Analyzing...</p>
-            ) : summary ? (
-                 <p className='text-sm'>{summary.substring(0, 100)}...</p> // Show snippet
-            ) : (
-                 <p className='text-sm italic text-[hsl(var(--muted-foreground))]'>No analysis yet.</p>
-            )}
-         </div>
-      );
+  const handleSendMessage = async (message: string) => {
+    setIsChatLoading(true);
+    setChatHistory(prev => [...prev, { role: 'user', content: message }]);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentContent: uploadedFile?.content, userMessage: message }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
+      } else {
+        console.error('Chat API error:', response.statusText);
+        setChatHistory(prev => [...prev, { role: 'assistant', content: 'Error: Could not get response from AI.' }]);
+      }
+    } catch (error) {
+      console.error('Chat API error:', error);
+      setChatHistory(prev => [...prev, { role: 'assistant', content: 'Error: Could not connect to the server.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
-
   return (
-    // Wrap everything in a single root Fragment
     <>
-      {/* Add a top margin to position below the header */}
       <div className="mt-24">
-        {/* Render the UploadArea component */}
-        {/* It calls handleFileUploaded when a file is ready */}
         <UploadArea onFileUploaded={handleFileUploaded} />
       </div>
 
-      {/* Conditionally display info/summary after upload */}
       {uploadedFile && (
-        <div className="mt-6 space-y-4"> {/* Add a wrapper div for layout */}
-          {/* Display basic file info */}
-          <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Loaded: <span className="font-medium text-[hsl(var(--foreground))]">{uploadedFile.name}</span> ({uploadedFile.contentType})
-          </p>
-
-          {/* Render the Summary Section */}
-          {renderSummarySection()}
-
-          {/* Placeholder for where the Chat interface would go */}
-          <div className="mt-4 p-4 border rounded bg-[hsl(var(--card)/0.5)] text-center text-[hsl(var(--muted-foreground))] italic">
-            Chat Interface Placeholder (if applicable within UploadInteract)
-          </div>
+        <div className="mt-6 space-y-4">
+          <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="summary">
+                  <AccordionTrigger>Summary</AccordionTrigger>
+                  <AccordionContent>
+                      <SummarySection
+                          summary={summary}
+                          isSummarizing={isSummarizing}
+                          uploadedFile={uploadedFile}
+                          isSummaryCollapsed={isSummaryCollapsed}
+                          setIsSummaryCollapsed={setIsSummaryCollapsed}
+                      />
+                  </AccordionContent>
+              </AccordionItem>
+            <AccordionItem value="chat">
+                <AccordionTrigger>Chat with Document</AccordionTrigger>
+                <AccordionContent>
+                <ChatSection
+                    chatHistory={chatHistory}
+                    isChatLoading={isChatLoading}
+                    uploadedFile={uploadedFile}
+                    onSendMessage={handleSendMessage}
+                />
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
         </div>
       )}
-    </> // Close the root Fragment
+    </>
   );
 };
 
-// Add the export statement
 export default UploadInteract;
