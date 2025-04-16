@@ -216,7 +216,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   className="fixed inset-0 top-16 left-0 right-0 z-40 md:hidden p-6 border-t border-[hsl(var(--border)/0.5)] shadow-lg"
                   // Apply background color with opacity AND backdrop blur
                   style={{
-                      backgroundColor: `hsla(var(--background), 0.85)`, // Use hsla for opacity control
+                      backgroundColor: `hsla(var(--background), 0.95)`, // Increased opacity
                       backdropFilter: 'blur(12px)', // Adjust blur amount as needed (e.g., 8px, 16px)
                       WebkitBackdropFilter: 'blur(12px)' // For Safari compatibility
                   }}
