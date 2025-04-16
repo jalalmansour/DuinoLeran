@@ -150,7 +150,7 @@ export default function Home() {
 
     const renderFileViewer = () => (
        
-            Uploaded File: {uploadedFile ? `${uploadedFile.name}` : "No file uploaded"}
+            {uploadedFile ? "Uploaded File: " + (uploadedFile.name ? uploadedFile.name : "No file uploaded") : "No file uploaded"}
             
             
             
@@ -208,9 +208,13 @@ export default function Home() {
                                             Processing File...
                                         
                                     </div>
+                                ) : uploadedFile ? (
+                                     // Show viewer when file is processed
+                                     renderFileViewer()
                                 ) : (
+                                    // Show Banner and Upload Area when NO file is loaded/processing
                                     <>
-                                        <FeatureBanner />
+                                        <FeatureBanner /> {/* <-- RENDER THE BANNER HERE */}
                                         <UploadInteract
                                             setUploadedFile={setUploadedFile}
                                             saveUploadHistory={saveUploadHistory}
@@ -279,26 +283,22 @@ export default function Home() {
                                  <Card className="glassmorphism h-full">
                                     <CardHeader>
                                         <CardTitle className="text-[hsl(var(--primary))]">Preferences</CardTitle>
-                                        <CardDescription className="text-[hsl(var(--muted-foreground))]">Configure interface appearance.</CardTitle>
+                                        <CardDescription className="text-[hsl(var(--muted-foreground))]">Configure interface appearance.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="grid gap-6 p-6">
                                         {/* Theme Selector */}
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4 border border-[hsl(var(--border))] p-4 rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] backdrop-blur-sm">
-                                            <div className="space-y-0.5 flex-shrink-0">
-                                                 
-                                                 Select the interface appearance.
-                                             
-                                             
-                                                 <SelectTrigger id="theme-select" className="w-full sm:w-[220px]">
-                                                     <SelectValue placeholder={!hasHydrated ? "Loading..." : "Select Theme"} />
-                                                 
-                                                 
-                                                        
-                                                        {themes.map((t) => (  {t.icon}  {t.name} ))}
-                                                     
-                                                 
-                                             
                                         
+                                                
+                                                 Select the interface appearance.
+                                              
+                                              
+                                                 
+                                                      
+                                                      {themes.map((t) => (  {t.icon}  {t.name} ))}
+                                                      
+                                                  
+                                              
+                                         
                                          {/* Add other settings here */}
                                     </CardContent>
                                 </Card>
