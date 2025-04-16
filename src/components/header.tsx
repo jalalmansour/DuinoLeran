@@ -1,4 +1,5 @@
-// src/components/header.tsx
+'use client';
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image'; // Import next/image
@@ -9,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Progress } from "@/components/ui/progress";
 import { Settings, UploadCloud, History, HelpCircle, Palette, Star, Menu, X, Loader2 } from 'lucide-react'; // Removed BookOpen as it wasn't used
 import { type ThemeId, type themes as themeOptions, useHasHydrated } from '@/hooks/useThemeStore';
+import { Label } from "@/components/ui/label";
 
 export type ActiveTabValue = "upload" | "history" | "settings" | "faq";
 
