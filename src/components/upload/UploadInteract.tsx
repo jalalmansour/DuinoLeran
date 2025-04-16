@@ -1,4 +1,3 @@
-// src/components/upload/UploadInteract.tsx
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -22,8 +21,8 @@ import SummarySection from '@/components/summary/SummarySection';
 import ChatSection from '@/components/chat/ChatSection';
 // Import other necessary components if needed (e.g., toast)
 import { useToast } from '@/hooks/use-toast'; // Import useToast
+import * as pdfjsLib from 'pdfjs-dist';
 
-// Define interfaces needed within this component or import them
 interface UploadedFile {
   id: string;
   name: string;
@@ -31,7 +30,7 @@ interface UploadedFile {
   size: number;
   lastModified: number;
   content: string; // Processed content or placeholder
-  contentType: 'text' | 'code' | 'document' | 'presentation' | 'book' | 'archive' | 'list' | 'metadata' | 'image' | 'error' | 'other'; // Added more specific types
+  contentType: 'text' | 'code' | 'document' | 'presentation' | 'book' | 'archive' | 'list' | 'metadata' | 'image' | 'audio' | 'video' | 'error' | 'other'; // Added more specific types
 }
 
 interface ChatMessage {
@@ -51,6 +50,8 @@ interface UploadInteractProps {
 // Helper to generate IDs
 const generateId = () => Math.random().toString(36).substring(2, 15);
 const MAX_FILE_SIZE_MB = 50;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
 
 const UploadInteract: React.FC<UploadInteractProps> = ({
   uploadedFile,
@@ -82,7 +83,7 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
       triggerSummarization(uploadedFile); // Fetch new summary
     } else {
       console.log("UploadInteract useEffect: File cleared");
-      setShowUploadArea(true);  // Show upload area
+      setShowUploadArea(true);  // Show upload area again
       setChatHistory([]);
       setSummary('');
       setIsSummarizing(false);
@@ -121,8 +122,22 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
       }
       // Placeholder logic for other types (implement actual library integrations here)
       else if (file.type === 'application/pdf') {
-        fileContent = `*Note: PDF content extraction requires specific library integration (e.g., pdfjs-dist).*`;
-        contentType = 'document';
+        try {
+           const arrayBuffer = await file.arrayBuffer();
+           const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+           let text = '';
+           for (let i = 1; i <= pdf.numPages; i++) {
+             const page = await pdf.getPage(i);
+             const content = await page.getTextContent();
+             text += content.items.map(item => item.str).join(' ');
+           }
+           fileContent = text;
+           contentType = 'document';
+         } catch (error: any) {
+           console.error('Error extracting text from PDF:', error);
+           fileContent = `*Error extracting text from PDF: ${error.message}*`;
+           contentType = 'error';
+         }
       } else if (fileExtension === 'docx') {
         fileContent = `*Note: DOCX content extraction requires specific library integration (e.g., mammoth.js).*`;
         contentType = 'document';
