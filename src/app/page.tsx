@@ -41,6 +41,11 @@ const UploadInteract = dynamic(() => import('@/components/upload/UploadInteract'
 // Dynamically import FAQ page
 const FAQPage = dynamic(() => import('./faq'), { ssr: true });
 
+const FeatureBanner = dynamic(() => import('@/components/banner/FeatureBanner'), {
+  loading: () => <p>Loading Banner...</p>,
+  ssr: false,
+});
+
 // --- Interfaces ---
 interface UploadedFile {
     id: string;
@@ -50,6 +55,11 @@ interface UploadedFile {
     lastModified: number;
     content: string;
     contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 // --- Framer Motion Variants ---
@@ -66,6 +76,8 @@ export default function Home() {
     const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
     const [activeTab, setActiveTab] = useState<ActiveTabValue>("upload");
     const [xp, setXp] = useState<number>(0);
+    const [isProcessing, setIsProcessing] = useState<boolean>(false); // Loading state
+    const [isBannerVisible, setIsBannerVisible] = useState<boolean>(true);
 
     // Refs
     const { toast } = useToast();
@@ -116,6 +128,11 @@ export default function Home() {
         } else { toast({ title: 'Error Loading File', variant: 'destructive' }); }
       }, [uploadHistory, toast, setActiveTab]);
 
+    // Function to handle file upload success
+    const handleFileProcessed = () => {
+        setIsProcessing(false);
+        setIsBannerVisible(false); // Hide banner on upload
+    };
 
     // --- Particle Config ---
     const particleOptions = React.useMemo(() => {
@@ -130,6 +147,17 @@ export default function Home() {
             default: return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: "#ffffff" }, links: { color: "#ffffff", opacity: 0.1 }, opacity: { value: { min: 0.1, max: 0.4 } } } };
         }
     }, [theme]);
+
+    const renderFileViewer = () => (
+       
+            Uploaded File: {uploadedFile ? `${uploadedFile.name}` : "No file uploaded"}
+            
+            
+            
+                Please upload a document first
+            
+        
+    );
 
     // --- Render ---
     return (
@@ -162,6 +190,7 @@ export default function Home() {
                 {/* Main Content Area - Added pb-24 */}
                 <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-18  pb-24">    {/* Tab Content */}
                     <AnimatePresence mode="wait">
+                        {/* --- Upload Tab --- */}
                         {activeTab === "upload" && (
                             <motion.div
                                 key="upload-content"
@@ -169,19 +198,35 @@ export default function Home() {
                                 initial="hidden"
                                 animate="visible"
                                 exit="exit"
-                                className="flex-grow flex flex-col outline-none md:mt-16 pt-14  pb-20"// Added top margin
+                                className="flex-grow flex flex-col outline-none mt-4 md:mt-12 space-y-6" // Added space-y-6
                              >
-                                <UploadInteract
-                                    uploadedFile={uploadedFile}
-                                    setUploadedFile={setUploadedFile}
-                                    saveUploadHistory={saveUploadHistory}
-                                    xp={xp}
-                                    setXp={setXp}
-                                    toast={toast}
-                                />
+                                {/* --- Conditional Rendering --- */}
+                                {isProcessing ? (
+                                    <div className="flex items-center justify-center h-60 text-[hsl(var(--muted-foreground))]">
+                                        
+                                            
+                                            Processing File...
+                                        
+                                    </div>
+                                ) : (
+                                    <>
+                                        <FeatureBanner />
+                                        <UploadInteract
+                                            setUploadedFile={setUploadedFile}
+                                            saveUploadHistory={saveUploadHistory}
+                                            xp={xp}
+                                            setXp={setXp}
+                                            toast={toast}
+                                            setIsProcessing={setIsProcessing}
+                                            onFileProcessed={handleFileProcessed}
+                                        />
+                                    </>
+                                )}
+                                {/* --- End Conditional Rendering --- */}
                             </motion.div>
                         )}
 
+                        {/* History Content */}
                         {activeTab === "history" && (
                             <motion.div
                                 key="history-content"
@@ -221,6 +266,7 @@ export default function Home() {
                             </motion.div>
                         )}
 
+                        {/* Settings Tab */}
                         {activeTab === "settings" && (
                              <motion.div
                                 key="settings-content"
@@ -233,33 +279,33 @@ export default function Home() {
                                  <Card className="glassmorphism h-full">
                                     <CardHeader>
                                         <CardTitle className="text-[hsl(var(--primary))]">Preferences</CardTitle>
-                                        <CardDescription className="text-[hsl(var(--muted-foreground))]">Configure interface appearance.</CardDescription>
+                                        <CardDescription className="text-[hsl(var(--muted-foreground))]">Configure interface appearance.</CardTitle>
                                     </CardHeader>
                                     <CardContent className="grid gap-6 p-6">
                                         {/* Theme Selector */}
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4 border border-[hsl(var(--border))] p-4 rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] backdrop-blur-sm">
                                             <div className="space-y-0.5 flex-shrink-0">
-                                                 <Label htmlFor="theme-select" className="text-base font-medium text-[hsl(var(--foreground))]">Visual Theme</Label>
-                                                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Select the interface appearance.</p>
-                                             </div>
-                                             <Select value={theme} onValueChange={(value) => setTheme(value as ThemeId)} disabled={!hasHydrated}>
+                                                 
+                                                 Select the interface appearance.
+                                             
+                                             
                                                  <SelectTrigger id="theme-select" className="w-full sm:w-[220px]">
                                                      <SelectValue placeholder={!hasHydrated ? "Loading..." : "Select Theme"} />
-                                                 </SelectTrigger>
-                                                 <SelectContent>
-                                                     <SelectGroup>
-                                                        <SelectLabel>Select Theme</SelectLabel>
-                                                        {themes.map((t) => ( <SelectItem key={t.id} value={t.id}><span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem> ))}
-                                                     </SelectGroup>
-                                                 </SelectContent>
-                                             </Select>
-                                        </div>
+                                                 
+                                                 
+                                                        
+                                                        {themes.map((t) => (  {t.icon}  {t.name} ))}
+                                                     
+                                                 
+                                             
+                                        
                                          {/* Add other settings here */}
                                     </CardContent>
                                 </Card>
                             </motion.div>
                         )}
 
+                        {/* FAQ Tab */}
                         {activeTab === "faq" && (
                             <motion.div
                                 key="faq-content"
@@ -275,9 +321,9 @@ export default function Home() {
                                         <CardDescription className="text-[hsl(var(--muted-foreground))]">Frequently Asked Questions.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow p-0">
-                                       <ScrollArea className="h-full max-h-[65vh] p-6 scrollbar-thin">
+                                       
                                            <FAQPage /> {/* Render the FAQ component */}
-                                       </ScrollArea>
+                                       
                                     </CardContent>
                                  </Card>
                             </motion.div>
