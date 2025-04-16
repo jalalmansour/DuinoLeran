@@ -1,4 +1,4 @@
-'use client';
+'use client'; // Ensure this is a Client Component
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label"; // Import Label
 import { Settings, UploadCloud, History, HelpCircle, Palette, Star, Menu, X, Loader2 } from 'lucide-react';
 import { type ThemeId, type themes as themeOptions, useHasHydrated } from '@/hooks/useThemeStore';
-import { Label } from "@/components/ui/label";
 
 export type ActiveTabValue = "upload" | "history" | "settings" | "faq";
 
@@ -18,7 +18,7 @@ interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
   xp: number;
   activeTab: ActiveTabValue;
   setActiveTab: (value: ActiveTabValue) => void;
-  children?: React.ReactNode; // Keep children for flexibility if needed later, though logo/title is now internal
+  children?: React.ReactNode; // Keep children prop even if unused for flexibility
   currentTheme: ThemeId;
   setTheme: (theme: ThemeId) => void;
   availableThemes: typeof themeOptions;
@@ -33,6 +33,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
       currentTheme,
       setTheme,
       availableThemes,
+      // children prop is available but unused in this specific implementation
       className,
       ...domProps
     },
@@ -41,31 +42,34 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
     const hasHydrated = useHasHydrated();
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-    // Simplified XP Level Calculation
+    // Simplified XP Level Calculation Logic
     const getLevel = (currentXp: number) => {
-        const levels = [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000]; // Example thresholds
+        const levels = [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000];
         let currentLevel = 1;
-        let xpForNextLevel = levels[1];
         let xpForCurrentLevel = levels[0];
+        let xpForNextLevel: number | string = levels[1]; // Default value
 
         for (let i = 1; i < levels.length; i++) {
             if (currentXp >= levels[i]) {
               currentLevel = i + 1;
               xpForCurrentLevel = levels[i];
-              xpForNextLevel = levels[i+1] ?? Infinity; // Use Infinity if it's the max level
+              xpForNextLevel = (i + 1 < levels.length) ? levels[i + 1] : 'MAX';
             } else {
               xpForNextLevel = levels[i];
               break;
             }
         }
+
         const xpInCurrentLevel = currentXp - xpForCurrentLevel;
-        const xpNeededForNext = xpForNextLevel - xpForCurrentLevel;
+        const xpNeededForNext = xpForNextLevel === 'MAX' ? Infinity : (xpForNextLevel as number) - xpForCurrentLevel;
         const progressPercent = (xpNeededForNext === Infinity || xpNeededForNext <= 0) ? 100 : Math.min(100, Math.round((xpInCurrentLevel / xpNeededForNext) * 100));
 
-        return { level: currentLevel, nextLevelXp: xpForNextLevel === Infinity ? 'MAX' : xpForNextLevel, progress: progressPercent }; // Return 'MAX' for clarity
+        return { level: currentLevel, nextLevelXp: xpForNextLevel, progress: progressPercent };
     };
+
     const { level, nextLevelXp, progress } = getLevel(xp);
 
+    // Tabs Data
     const tabs: { value: ActiveTabValue; label: string; icon: React.ElementType }[] = [
         { value: "upload", label: "Interact", icon: UploadCloud },
         { value: "history", label: "Logs", icon: History },
@@ -73,11 +77,13 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
         { value: "faq", label: "FAQ", icon: HelpCircle },
     ];
 
+     // Navigation Click Handler
      const handleNavClick = (tabId: ActiveTabValue) => {
         setActiveTab(tabId);
         setIsMenuOpen(false); // Close menu on navigation
     };
 
+    // --- RETURN STATEMENT ---
     return (
       <TooltipProvider>
           <motion.header
@@ -94,19 +100,18 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
             {...domProps}
           >
             {/* Main Header Content Container */}
-            <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6"> {/* Adjusted padding */}
+            <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
 
                 {/* Left Side: Logo + Title */}
                 <div className="flex items-center flex-shrink-0 mr-4">
                     <Image
                         src="/duino.png" // Ensure this path is correct in your public folder
                         alt="DuinoCourse Logo"
-                        width={32} // Slightly smaller logo
+                        width={32}
                         height={32}
                         className="h-8 w-8 mr-2" // Explicit height/width class
                         priority // Prioritize loading the logo
                     />
-                    {/* Title is now part of the header component */}
                     <motion.h1
                         className="text-xl sm:text-2xl font-bold tracking-tighter gradient-text filter drop-shadow-[0_0_5px_hsla(var(--primary),0.4)]"
                         style={{ fontFamily: 'var(--font-display, var(--font-sans))' }}
@@ -121,23 +126,22 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                     <Tooltip key={tab.value} delayDuration={100}>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="ghost" // Use themed ghost button
+                          variant="ghost"
                           size="sm"
                           className={cn(
-                            "relative rounded-full px-4 py-1.5 transition-all duration-200 flex items-center space-x-1.5 text-xs", // Relative for indicator
+                            "relative rounded-full px-4 py-1.5 transition-all duration-200 flex items-center space-x-1.5 text-xs",
                             activeTab === tab.value
-                              ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm' // Active state
-                              : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent)/0.1)]' // Inactive state
+                              ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm'
+                              : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent)/0.1)]'
                           )}
                           onClick={() => handleNavClick(tab.value)}
                         >
                           <tab.icon className="h-4 w-4" />
                           <span>{tab.label}</span>
-                           {/* Animated underline indicator */}
-                            {activeTab === tab.value && (
+                           {activeTab === tab.value && (
                                 <motion.div
-                                    layoutId="activeNavIndicatorHeader" // Unique ID
-                                    className="absolute bottom-[-7px] left-2 right-2 h-[2px] bg-[hsl(var(--primary))]" // Positioned below
+                                    layoutId="activeNavIndicatorHeader"
+                                    className="absolute bottom-[-7px] left-2 right-2 h-[2px] bg-[hsl(var(--primary))]"
                                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                 />
                             )}
@@ -149,12 +153,11 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                 </nav>
 
                 {/* Right Side: Theme Switcher (Desktop), Mobile Menu Trigger */}
-                <div className="flex items-center space-x-2 sm:space-x-3"> {/* Adjusted spacing */}
+                <div className="flex items-center space-x-2 sm:space-x-3">
 
                    {/* Theme Switcher - DESKTOP ONLY */}
-                   <div className="hidden md:block"> {/* Hide on mobile */}
+                   <div className="hidden md:block">
                        {!hasHydrated ? (
-                            // Placeholder to prevent layout shift
                             <div className="w-[44px] h-9 rounded-md bg-[hsl(var(--muted)/0.2)] animate-pulse flex items-center justify-center">
                                 <Loader2 className="h-4 w-4 animate-spin text-[hsl(var(--muted-foreground))]" />
                             </div>
@@ -164,8 +167,8 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                 <TooltipTrigger asChild>
                                     <SelectTrigger
                                         className={cn(
-                                            "w-auto h-9 px-2 border bg-transparent", // Transparent bg
-                                            "hover:bg-[hsl(var(--accent)/0.1)] focus:ring-ring focus:ring-1" // Standard focus
+                                            "w-auto h-9 px-2 border bg-transparent",
+                                            "hover:bg-[hsl(var(--accent)/0.1)] focus:ring-ring focus:ring-1"
                                         )}
                                         aria-label="Select theme"
                                     >
@@ -181,10 +184,9 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                 </Tooltip>
                                 <SelectContent align="end" className="min-w-[180px]">
                                     <SelectGroup>
-                                        <SelectLabel>Available Themes</SelectLabel>
+                                        <SelectLabel>Select Theme</SelectLabel>
                                         {availableThemes.map((t) => (
-                                            <SelectItem key={t.id} value={t.id}>
-                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem>
+                                            <SelectItem key={t.id} value={t.id}><span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem>
                                         ))}
                                     </SelectGroup>
                                 </SelectContent>
@@ -195,7 +197,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   {/* Mobile Menu Trigger - MOBILE ONLY */}
                   <div className="md:hidden">
                     <Button
-                      variant="ghost" // Use ghost for less visual weight
+                      variant="ghost"
                       size="icon"
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
                       className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--accent)/0.1)]"
@@ -207,38 +209,32 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                 </div>
             </div>
 
-            {/* Mobile Menu Panel - ADDED BLUR */}
+            {/* --- Mobile Menu Panel --- */}
             <AnimatePresence>
               {isMenuOpen && (
                 <motion.div
-                  // --- Positioning & Styling ---
-                  // Covers viewport below header, hidden on desktop
+                  // Positioning & Styling
                   className="fixed inset-0 top-16 left-0 right-0 z-40 md:hidden p-6 border-t border-[hsl(var(--border)/0.5)] shadow-lg"
-                  // Apply background color with opacity AND backdrop blur
+                  // UPDATED Inline style for stronger blur/less transparency
                   style={{
-                      backgroundColor: `hsla(var(--background), 0.95)`, // Increased opacity
-                      backdropFilter: 'blur(12px)', // Adjust blur amount as needed (e.g., 8px, 16px)
-                      WebkitBackdropFilter: 'blur(12px)' // For Safari compatibility
+                      backgroundColor: `hsla(var(--background), 0.95)`, // More opaque (5% transparent)
+                      backdropFilter: 'blur(16px)',                     // Increased blur
+                      WebkitBackdropFilter: 'blur(16px)'                // Safari fallback
                   }}
-                  // --- Animation ---
+                  // Animation
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }} // Faster exit
+                  exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2, ease: 'easeInOut' }}
                 >
                   {/* Menu Content */}
-                  <nav className="flex flex-col space-y-2"> {/* Reduced spacing slightly */}
+                  <nav className="flex flex-col space-y-2">
                     {/* Navigation Tabs */}
                     {tabs.map((tab) => (
                       <Button
                         key={tab.value}
-                        variant={activeTab === tab.value ? "secondary" : "ghost"} // Highlight active tab
-                        className={cn(
-                            "w-full justify-start space-x-3 text-base py-3", // Increased padding/size
-                            activeTab === tab.value
-                              ? 'text-[hsl(var(--secondary-foreground))]' // Use secondary colors for active
-                              : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent)/0.1)]'
-                        )}
+                        variant={activeTab === tab.value ? "secondary" : "ghost"}
+                        className={cn( "w-full justify-start space-x-3 text-base py-3", activeTab === tab.value ? 'text-[hsl(var(--secondary-foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent)/0.1)]' )}
                         onClick={() => handleNavClick(tab.value)}
                       >
                         <tab.icon className="h-5 w-5" />
@@ -258,7 +254,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                             </div>
                         ) : (
                             <Select value={currentTheme} onValueChange={(value) => setTheme(value as ThemeId)}>
-                                <SelectTrigger className="w-full h-11"> {/* Slightly larger trigger */}
+                                <SelectTrigger className="w-full h-11">
                                     <SelectValue placeholder="Select a theme" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -288,7 +284,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                     </div>
                   </nav>
 
-                  {/* Close Button (Positioned within the blurred panel) */}
+                  {/* Close Button */}
                    <Button
                         variant="ghost"
                         size="icon"
