@@ -18,7 +18,6 @@ interface UploadedFile {
   name: string;
   type: string;
   size: number;
-  lastModified: number;
   content: string;
   contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
 }
@@ -63,7 +62,7 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     // Summarize the document after upload
     setIsSummarizing(true);
     try {
-      const response = await fetch('/api/summarize', {
+      const response = await fetch('/api/flows/summarize-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileContent: file.content }),
