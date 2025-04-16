@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from "@/components/ui/progress";
-import { Settings, UploadCloud, History, HelpCircle, Palette, Star, Menu, X, Loader2 } from 'lucide-react'; // Removed BookOpen as it wasn't used
+import { Settings, UploadCloud, History, HelpCircle, Palette, Star, Menu, X, Loader2 } from 'lucide-react';
 import { type ThemeId, type themes as themeOptions, useHasHydrated } from '@/hooks/useThemeStore';
 import { Label } from "@/components/ui/label";
 
@@ -33,7 +33,6 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
       currentTheme,
       setTheme,
       availableThemes,
-      // children prop is available but unused in this specific implementation
       className,
       ...domProps
     },
@@ -79,7 +78,6 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
         setIsMenuOpen(false); // Close menu on navigation
     };
 
-    // --- RETURN STATEMENT ---
     return (
       <TooltipProvider>
           <motion.header
@@ -183,11 +181,10 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                 </Tooltip>
                                 <SelectContent align="end" className="min-w-[180px]">
                                     <SelectGroup>
-                                        <SelectLabel>Select Theme</SelectLabel>
+                                        <SelectLabel>Available Themes</SelectLabel>
                                         {availableThemes.map((t) => (
                                             <SelectItem key={t.id} value={t.id}>
-                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}
-                                            </SelectItem>
+                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem>
                                         ))}
                                     </SelectGroup>
                                 </SelectContent>
@@ -269,8 +266,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                         <SelectLabel>Available Themes</SelectLabel>
                                         {availableThemes.map((t) => (
                                             <SelectItem key={t.id} value={t.id}>
-                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}
-                                            </SelectItem>
+                                                <span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem>
                                         ))}
                                     </SelectGroup>
                                 </SelectContent>
