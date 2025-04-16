@@ -160,7 +160,7 @@ export default function Home() {
                 </Header>
 
                 {/* Main Content Area - Added pb-24 */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-2  pb-24">    {/* Tab Content */}
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-4  pb-24">    {/* Tab Content */}
                     <AnimatePresence mode="wait">
                         {activeTab === "upload" && (
                             <motion.div
@@ -169,7 +169,7 @@ export default function Home() {
                                 initial="hidden"
                                 animate="visible"
                                 exit="exit"
-                                className="flex-grow flex flex-col outline-none mt-6" // Added top margin
+                                className="flex-grow flex flex-col outline-none md:mt-16 pt-24  pb-24"// Added top margin
                              >
                                 <UploadInteract
                                     uploadedFile={uploadedFile}

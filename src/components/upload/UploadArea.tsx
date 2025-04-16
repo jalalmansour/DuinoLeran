@@ -1,11 +1,13 @@
-// src/components/upload/UploadArea.tsx
+'use client';
+
 import React, { useCallback, useState } from 'react'; // Removed useEffect as it's not used
 import { useDropzone } from 'react-dropzone';
-import { Upload } from 'lucide-react'; // Only Upload icon needed here
+import { Upload, File } from 'lucide-react'; // Only Upload icon needed here
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 // Removed Card imports as we're styling the div directly
 import { cn } from '@/lib/utils';
+import { FileArchive, FileAudio, FileCode, FileCsv, FileImage, FilePdf, FileVideo, FileText, FileJson, FileWord } from "lucide-react";
 
 // Simplified UploadedFile stub - parent handles the real one
 interface BasicFileInfo {
@@ -147,7 +149,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
             "text-lg font-semibold",
              isDragActive ? "text-[hsl(var(--foreground))]" : "text-[hsl(var(--foreground))/0.9]" // Text slightly brighter on drag
              )}>
-          Drag & drop files or folders here
+          Drag &amp; drop files or folders here
         </p>
         <p className="text-sm text-muted-foreground mt-1">
            or click to select items
@@ -156,7 +158,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
       {/* Display minimal progress indicator */}
       {uploadProgress !== null && uploadProgress >= 0 && uploadProgress <= 10 && (
         <div className="w-full max-w-xs mx-auto mt-6">
-          <Progress value={uploadProgress * 10} className="h-1 [&>div]:bg-[hsl(var(--primary))]" />
+          <Progress value={uploadProgress * 10} className="h-1 [&gt;div]:bg-[hsl(var(--primary))]" />
           {/* Optional: <p className="text-xs text-muted-foreground mt-1 text-center">Selecting...</p> */}
         </div>
       )}
@@ -165,3 +167,41 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
 };
 
 export default UploadArea;
+
+// Helper function to return the appropriate file icon
+export function getFileIcon(filename: string): React.FC<React.SVGProps<SVGSVGElement>> {
+  const extension = filename.split('.').pop()?.toLowerCase();
+
+  switch (extension) {
+    case 'pdf':
+      return FilePdf;
+    case 'doc':
+    case 'docx':
+      return FileWord;
+    case 'txt':
+      return FileText;
+    case 'js':
+    case 'ts':
+    case 'jsx':
+    case 'tsx':
+      return FileCode;
+    case 'json':
+      return FileJson;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+      return FileImage;
+    case 'mp3':
+    case 'wav':
+      return FileAudio;
+    case 'mp4':
+    case 'mov':
+      return FileVideo;
+    case 'zip':
+    case 'rar':
+      return FileArchive;
+    default:
+      return File;
+  }
+}
