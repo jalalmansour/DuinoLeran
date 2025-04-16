@@ -6,7 +6,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
 // --- Libraries ---
-// Import motion components and hooks separately
 import { motion, AnimatePresence, useScroll, useTransform, type MotionValue } from 'framer-motion';
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
@@ -18,12 +17,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { Loader2, X, HelpCircle } from 'lucide-react'; // Loader, X, HelpCircle icons
+import { Loader2, X, HelpCircle, Bot } from 'lucide-react'; // Ensure Bot is imported
 
 // --- Utilities & Hooks ---
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useThemeStore, themes, useHasHydrated, type ThemeId } from '@/hooks/useThemeStore';
+import useMediaQuery from '@/hooks/useMediaQuery'; // Import the custom hook
 
 // --- Custom Components & Types ---
 import Header, { type ActiveTabValue } from '@/components/header';
@@ -42,12 +42,24 @@ const ChatSection = dynamic(() => import('@/components/chat/ChatSection'), {
     ssr: false
 });
 import FloatingButton from '@/components/FloatingButton'; // Keep static if small
-// SummarySection is likely used within a viewer or UploadInteract
+// SummarySection is likely used within viewers or UploadInteract
+// If needed directly here (e.g., in a viewer), import it:
 // import SummarySection from '@/components/summary/SummarySection';
 
 // --- DYNAMIC IMPORTS FOR FILE VIEWERS ---
-const ViewerLoading = ({ message = "Loading..." }: { message?: string }) => ( <div className="flex items-center justify-center h-40 text-[hsl(var(--muted-foreground))]"> <Loader2 className="h-6 w-6 animate-spin mr-2 text-[hsl(var(--primary))]" /> {message} </div> );
-const GenericFileViewer = dynamic(() => import('@/components/viewers/GenericFileViewer'), { loading: () => <ViewerLoading /> });
+const ViewerLoading = ({ message = "Loading..." }: { message?: string }) => (
+    <div className="flex items-center justify-center h-40 text-[hsl(var(--muted-foreground))]">
+        <Loader2 className="h-6 w-6 animate-spin mr-2 text-[hsl(var(--primary))]" />
+        {message}
+    </div>
+);
+// Generic viewer as fallback
+const GenericFileViewer = dynamic(() => import('@/components/viewers/GenericFileViewer').catch(err => {
+    console.error("Failed to load GenericFileViewer", err);
+    // Provide an inline fallback component if GenericFileViewer itself fails
+    return () => <div className='p-4 border rounded bg-destructive/20 text-destructive-foreground'>Error loading file viewer.</div>;
+}), { loading: () => <ViewerLoading /> });
+// Specific viewers with fallback to GenericFileViewer
 const DocumentViewer = dynamic(() => import('@/components/viewers/DocumentViewer').catch(err => { console.error("Failed to load DocumentViewer", err); return GenericFileViewer; }), { loading: () => <ViewerLoading /> });
 const PresentationViewer = dynamic(() => import('@/components/viewers/PresentationViewer').catch(err => { console.error("Failed to load PresentationViewer", err); return GenericFileViewer; }), { loading: () => <ViewerLoading /> });
 const CodeViewer = dynamic(() => import('@/components/viewers/CodeViewer').catch(err => { console.error("Failed to load CodeViewer", err); return GenericFileViewer; }), { loading: () => <ViewerLoading /> });
@@ -87,7 +99,7 @@ export default function Home() {
     const setTheme = useThemeStore((state) => state.setTheme);
     // Application State
     const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
-    const [isProcessing, setIsProcessing] = useState<boolean>(false);
+    const [isProcessing, setIsProcessing] = useState<boolean>(false); // Loading state during file processing
     const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
     const [activeTab, setActiveTab] = useState<ActiveTabValue>("upload");
     const [xp, setXp] = useState<number>(0);
@@ -95,27 +107,28 @@ export default function Home() {
     const [showChat, setShowChat] = useState(false);
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
-    // State potentially needed by viewers
-    const [summary, setSummary] = useState<string>('');
-    const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
+    // State potentially passed to viewers (if they don't fetch their own data)
+    // const [summary, setSummary] = useState<string>('');
+    // const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
 
-    // --- Hooks called at Top Level ---
+    // Hooks called at Top Level
     const { scrollY } = useScroll();
-    // useTransform creates a MotionValue which updates on scroll
     const underlineScaleX = useTransform(scrollY, [0, 50], [0, 1], { clamp: false });
-    // --- End Hooks ---
+    const isDesktop = useMediaQuery('(min-width: 768px)'); // For conditional chat dragging
 
     // Refs
     const { toast } = useToast();
     const headerRef = useRef<HTMLElement>(null);
+    const constraintsRef = useRef<HTMLDivElement>(null); // Ref for chat drag constraints
+
 
     // --- Effects ---
-    useEffect(() => { // Load initial state (history, XP) from localStorage
+    useEffect(() => { // Load initial state from localStorage
         try { const storedHistory = localStorage.getItem('uploadHistory'); if (storedHistory) setUploadHistory(JSON.parse(storedHistory)); } catch (e) { console.error('Failed to parse upload history:', e); localStorage.removeItem('uploadHistory'); }
         try { const storedXp = localStorage.getItem('userXp'); if (storedXp) setXp(parseInt(storedXp, 10) || 0); } catch (e) { console.error('Failed to parse user XP:', e); localStorage.removeItem('userXp'); }
     }, []);
 
-    useEffect(() => { // Save XP to localStorage when it changes
+    useEffect(() => { // Save XP to localStorage
         if (xp > 0 || localStorage.getItem('userXp')) {
            localStorage.setItem('userXp', xp.toString());
         }
@@ -126,21 +139,21 @@ export default function Home() {
         initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => setParticlesInit(true));
     }, []);
 
-    // Effect to reset chat when file changes
-    useEffect(() => {
+    useEffect(() => { // Reset chat when the main uploaded file changes
         if (!uploadedFile) {
-            setShowChat(false); // Hide chat if file is cleared
+            setShowChat(false); // Hide chat window if file is cleared
         }
-        setChatHistory([]); // Clear history when file changes
+        setChatHistory([]); // Always clear history when file context changes
     }, [uploadedFile]);
 
     // --- Callbacks ---
     const saveUploadHistory = useCallback((file: UploadedFile) => {
       setUploadHistory((prev) => {
+        // Avoid duplicates based on name and lastModified time
         if (prev.some(i => i.name === file.name && i.lastModified === file.lastModified)) return prev;
-        const newHistory = [file, ...prev].slice(0, 15);
+        const newHistory = [file, ...prev].slice(0, 15); // Keep history size limited
         try { localStorage.setItem('uploadHistory', JSON.stringify(newHistory)); }
-        catch (e: any) { toast({ title: 'Error Saving History', variant: 'warning' }); return prev; }
+        catch (e: any) { toast({ title: 'Error Saving History', description: 'Storage might be full.', variant: 'warning' }); return prev; }
         return newHistory;
       });
     }, [toast]);
@@ -152,58 +165,66 @@ export default function Home() {
      const loadFileFromHistory = useCallback(async (fileId: string) => {
         const fileToLoad = uploadHistory.find(f => f.id === fileId);
         if (fileToLoad) {
+          // More robust content check might be needed depending on how placeholders are stored
           if (!fileToLoad.content && !['image','audio','video','archive','list','metadata'].includes(fileToLoad.contentType)) {
               toast({ title: 'Content Missing', description:`Stored data for ${fileToLoad.name} is incomplete.`, variant: 'warning' });
               return;
           }
-          setUploadedFile(fileToLoad);
-          setActiveTab("upload");
+          setUploadedFile(fileToLoad); // Set file state
+          setActiveTab("upload");      // Switch to upload/viewer tab
           toast({ title: 'File Loaded from History', variant: 'info' });
         } else { toast({ title: 'Error Loading File', variant: 'destructive' }); }
-      }, [uploadHistory, toast, setActiveTab]);
+      }, [uploadHistory, toast, setActiveTab]); // Dependencies
 
-    // Callback from UploadInteract when file processing is complete
+    // Callback passed to UploadInteract, triggered when its internal processing finishes
     const handleFileProcessed = useCallback((processedFile: UploadedFile | null, error?: string) => {
-        setIsProcessing(false);
+        setIsProcessing(false); // Turn off page-level processing indicator
         if (error) {
             toast({ title: "File Processing Error", description: error, variant: "destructive" });
-            setUploadedFile(null);
+            setUploadedFile(null); // Clear file state on error
         } else if (processedFile) {
-            setUploadedFile(processedFile);
-            saveUploadHistory(processedFile);
+            setUploadedFile(processedFile); // Set the processed file data for viewers
+            saveUploadHistory(processedFile); // Save to history
             toast({ title: "File Ready", description: `${processedFile.name} processed.`, variant: "success" });
-            setShowChat(true); // Optionally auto-open chat
+            setShowChat(true); // Optionally auto-open chat window
         } else {
+             // Handle cases where processing was cancelled or yielded no result without error
              setUploadedFile(null);
         }
-    }, [toast, saveUploadHistory]);
+    }, [toast, saveUploadHistory]); // Dependencies
 
-     // Chat Message Handler
+     // Chat Message Handler - Makes API call
     const handleSendMessage = useCallback(async (message: string) => {
         if (!uploadedFile) { toast({ title: "Error", description: "No file loaded.", variant: "destructive" }); return; }
+        // Allow chatting even with placeholder content, as the AI might be able to comment on file type/metadata
         if (!uploadedFile.content && !['image','audio','video','archive','list','metadata'].includes(uploadedFile.contentType)) {
              toast({ title: "Error", description: "File content is not suitable for chat.", variant: "warning" }); return;
         }
 
         const userMessage: ChatMessage = { role: 'user', content: message };
         setChatHistory(prev => [...prev, userMessage]);
-        setIsChatLoading(true);
+        setIsChatLoading(true); // Show loading indicator in chat
 
         try {
-            const response = await fetch('/api/chat-with-document', { // Ensure API route exists
+            const response = await fetch('/api/chat-with-document', { // Ensure this API route exists and works
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ documentContent: uploadedFile.content, userMessage: message }),
+                body: JSON.stringify({ documentContent: uploadedFile.content, userMessage: message }), // Send context and message
             });
-            if (!response.ok) throw new Error(`API Error: ${response.statusText || response.status}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `API Error: ${response.statusText || response.status}`);
+            }
             const data = await response.json();
-            if (data.response) { setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]); setXp(prev => prev + 5); }
-            else { throw new Error("No response content from AI."); }
+            if (data.response) {
+                setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
+                setXp(prev => prev + 5); // Award XP
+            } else { throw new Error("No response content from AI."); }
         } catch (error: any) {
             console.error('Chat API error:', error);
             setChatHistory(prev => [...prev, { role: 'assistant', content: `*Error: ${error.message || 'Could not get response.'}*` }]);
             toast({ title: 'Chat Error', description: error.message || 'Failed to get AI response.', variant: 'destructive' });
-        } finally { setIsChatLoading(false); }
-    }, [toast, setXp, uploadedFile]);
+        } finally { setIsChatLoading(false); } // Hide loading indicator
+    }, [toast, setXp, uploadedFile]); // Dependencies
 
 
     // --- Helper to render the correct file viewer ---
@@ -213,7 +234,8 @@ export default function Home() {
         // Pass common props needed by viewers
         const commonViewerProps = {
             file: uploadedFile,
-            // Add summary state if viewers need it
+            // Pass summary state ONLY if viewers need to display it directly
+            // Otherwise, viewers might fetch their own specific data/summary
             // summary: summary,
             // isSummarizing: isSummarizing,
         };
@@ -227,7 +249,9 @@ export default function Home() {
             case 'book': return <BookViewer {...commonViewerProps} />;
             case 'archive': case 'list': return <ArchiveViewer {...commonViewerProps} />;
             case 'image': return <ImageViewer {...commonViewerProps} />;
-            case 'error': case 'other': case 'metadata':
+            case 'error': // Display error using GenericFileViewer
+            case 'other':
+            case 'metadata': // Can use Generic or specific viewers might handle it
             default: return <GenericFileViewer {...commonViewerProps} />;
         }
     };
@@ -235,7 +259,7 @@ export default function Home() {
     // --- Particle Config ---
     const particleOptions = React.useMemo(() => {
         const baseConfig = { fpsLimit: 60, interactivity: { events: { onClick: { enable: false }, onHover: { enable: true, mode: "repulse" }, resize: true }, modes: { repulse: { distance: 80, duration: 0.4 } } }, particles: { links: { distance: 100, enable: true, width: 1 }, move: { direction: "none", enable: true, outModes: { default: "out" }, random: true, speed: 0.5, straight: false }, number: { density: { enable: true, area: 900 }, value: 40 }, shape: { type: "circle" }, size: { value: { min: 1, max: 2.5 } } }, detectRetina: true, background: { color: "transparent" } };
-        switch(theme) {
+        switch(theme) { // Theme specific particle overrides
             case 'cyberpunk': case 'matrix-code': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#0ff", "#f0f", "#0f0"] }, links: { ...baseConfig.particles.links, color: "#0ff", opacity: 0.15 }, opacity: { value: { min: 0.2, max: 0.6 } } } };
             case 'dark-luxe': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#D4AF37", "#C0C0C0", "#A0A0A0"] }, links: { ...baseConfig.particles.links, color: "#B0B0C0", opacity: 0.08 }, opacity: { value: { min: 0.1, max: 0.4 } } } };
             case 'glassmorphism': case 'minimal-light': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#a0a0ff", "#a0d0ff", "#c0c0ff"] }, links: { ...baseConfig.particles.links, color: "#c0c0c0", opacity: 0.2 }, opacity: { value: { min: 0.3, max: 0.7 } } } };
@@ -249,7 +273,7 @@ export default function Home() {
     // --- Render ---
     return (
         <TooltipProvider delayDuration={200}>
-            <div className={cn('flex flex-col min-h-screen font-sans transition-colors duration-300')}>
+            <div ref={constraintsRef} className={cn('flex flex-col min-h-screen font-sans transition-colors duration-300 overflow-x-hidden relative')}> {/* Added relative for constraint context */}
                 {/* Background Elements */}
                  <div className="fixed inset-0 -z-20 overflow-hidden">
                     <motion.div className={cn("absolute inset-0 transition-opacity duration-1000", { /* theme backgrounds */ }[theme] ?? "bg-[hsl(var(--background))]")} style={{ backgroundSize: '200% 200%' }} animate={['cyberpunk', 'sunset-gradient', 'dark-luxe'].includes(theme) ? { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] } : {}} transition={['cyberpunk', 'sunset-gradient', 'dark-luxe'].includes(theme) ? { duration: 25, repeat: Infinity, ease: "linear" } : {}} />
@@ -260,42 +284,34 @@ export default function Home() {
                 {/* Header */}
                 <Header
                     ref={headerRef} xp={xp} activeTab={activeTab} setActiveTab={setActiveTab}
-                    currentTheme={theme} setTheme={setTheme} availableThemes={themes}>
-                    <motion.h1 className="text-2xl md:text-3xl font-bold tracking-tighter gradient-text filter drop-shadow-[0_0_5px_hsla(var(--primary),0.4)] py-1 relative" style={{ fontFamily: 'var(--font-display, var(--font-sans))' }}>
-                        DuinoCourse AI
-                        <motion.div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[hsl(var(--primary))] to-transparent shadow-[0_0_8px_hsl(var(--primary))]"
-                            // Use the MotionValue directly from useTransform for the underline style
-                            style={{ scaleX: underlineScaleX, originX: 0.5 }}
-                         />
-                    </motion.h1>
-                </Header>
+                    currentTheme={theme} setTheme={setTheme} availableThemes={themes}
+                />
 
                 {/* Main Content Area */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-20 md:pt-32 pb-24 md:pb-32">
-                    {/* Tab Content */}
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-20 md:pt-2 pb-4 md:pb-2">    {/* Tab Content */}
                     <AnimatePresence mode="wait">
                         {/* --- Upload Tab --- */}
                         {activeTab === "upload" && (
                             <motion.div key="upload-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col items-center outline-none mt-4 md:mt-12 space-y-6">
-                                {/* Conditionally render either the UploadInteract, FileViewer, or AI Chat section based on state */}
-                                {isProcessing ? (
-                                    <ViewerLoading message="Processing File..." />
-                                ) : uploadedFile ? (
-                                    <>
-                                        {renderFileViewer()}
-                                    </>
-                                ) : (
+                                {isProcessing ? ( <ViewerLoading message="Processing File..." /> )
+                                 : uploadedFile ? ( renderFileViewer() ) // Render the specific viewer for the file
+                                 : ( // Initial state: Show Banner and Upload Area
                                     <>
                                         <FeatureBanner />
                                         <UploadInteract
-                                            setUploadedFile={setUploadedFile}
+                                            // Key props for UploadInteract to function
                                             setIsProcessing={setIsProcessing}
                                             onFileProcessed={handleFileProcessed}
-                                            saveUploadHistory={saveUploadHistory}
                                             toast={toast}
+                                            // Pass other props IF UploadInteract needs them directly
+                                            // (It gets file info via callback, sets parent state)
+                                            setUploadedFile={setUploadedFile}
+                                            saveUploadHistory={saveUploadHistory}
+                                            xp={xp}
+                                            setXp={setXp}
                                         />
                                     </>
-                                )}
+                                 )}
                             </motion.div>
                         )}
 
@@ -338,29 +354,63 @@ export default function Home() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-
                 </main>
 
                 {/* Footer */}
                 <Footer />
 
-                {/* --- Floating Chat Elements --- */}
-                {uploadedFile && (
+                         {/* --- Floating Chat Elements --- */}
+                         {uploadedFile && (
                     <>
                         {/* Floating Button */}
-                        <div className="fixed bottom-6 right-6 z-50">
+                        <div className="fixed bottom-6 right-6 z-50 pt-20 md:pt-4 ms:pt-3 pb-24 md:pb-32">
                           <FloatingButton onClick={() => setShowChat(!showChat)} isVisible={!showChat}>
-                            <HelpCircle className="h-5 w-5" />
+                            <Bot className="h-5 w-5" />
                           </FloatingButton>
                         </div>
 
                         {/* Chat Window */}
                         <AnimatePresence>
                           {showChat && (
-                            <motion.div variants={floatingChatVariants} initial="hidden" animate="visible" exit="exit" className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40 w-[90%] max-w-lg">
-                              <Card className="p-0 overflow-hidden shadow-2xl border border-[hsl(var(--border)/0.7)] glassmorphism relative">
-                                <ChatSection chatHistory={chatHistory} isChatLoading={isChatLoading} uploadedFile={uploadedFile} onSendMessage={handleSendMessage} />
-                                 <ShadcnButton variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 text-[hsl(var(--muted-foreground))] hover:bg-destructive/10 hover:text-destructive z-10" onClick={() => setShowChat(false)} aria-label="Close chat">
+                            <motion.div
+                              key="chat-window"
+                              variants={floatingChatVariants}
+                              initial="hidden" animate="visible" exit="exit"
+                              // --- Adjusted Styling & Positioning ---
+                              className={cn(
+                                "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40", // Start position
+                                "w-[90vw] max-w-lg", // Responsive width
+                                "h-[65vh] max-h-[550px]" // Responsive height with max
+                              )}
+                              // --- Enable full dragging only on desktop ---
+                              drag={isDesktop} // Enable free drag only if isDesktop is true
+                              dragConstraints={constraintsRef} // Keep constraints
+                              dragElastic={0.1}
+                              dragMomentum={false}
+                              style={{ cursor: isDesktop ? 'grab' : 'default' }} // Indicate draggability
+                              whileDrag={{ cursor: 'grabbing' }}
+                            >
+                              {/* --- Card now handles flex layout --- */}
+                              <Card className={cn(
+                                  "h-full w-full flex flex-col", // Take full height/width of motion.div, enable flex column
+                                  "p-0 overflow-hidden shadow-2xl border border-[hsl(var(--border)/0.7)] relative",
+                                  "bg-[hsl(var(--background)/0.9)] backdrop-blur-md" // Background/blur
+                                )}
+                              >
+                                {/* ChatSection will now receive the file and manage internal scrolling */}
+                                <ChatSection
+                                  chatHistory={chatHistory}
+                                  isChatLoading={isChatLoading}
+                                  uploadedFile={uploadedFile}
+                                  onSendMessage={handleSendMessage}
+                                />
+                                 {/* Close Button remains absolutely positioned */}
+                                 <ShadcnButton
+                                     variant="ghost" size="icon"
+                                     className="absolute top-2 right-2 h-7 w-7 text-[hsl(var(--muted-foreground))] hover:bg-destructive/10 hover:text-destructive z-10"
+                                     onClick={() => setShowChat(false)}
+                                     aria-label="Close chat"
+                                 >
                                      <X className="h-4 w-4"/>
                                  </ShadcnButton>
                               </Card>
