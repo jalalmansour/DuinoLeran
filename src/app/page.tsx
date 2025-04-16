@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 // --- Core React & Next.js ---
@@ -6,7 +5,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
 // --- Libraries ---
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 
@@ -17,7 +16,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { Loader2, X } from 'lucide-react'; // Loader, X icon
+import { Loader2, X, HelpCircle } from 'lucide-react'; // Loader, X icon
 
 // --- Utilities & Hooks ---
 import { cn } from '@/lib/utils';
@@ -41,6 +40,7 @@ const ChatSection = dynamic(() => import('@/components/chat/ChatSection'), {
     ssr: false
 });
 import FloatingButton from '@/components/FloatingButton'; // Keep static if small
+import SummarySection from '@/components/summary/SummarySection';
 
 // --- DYNAMIC IMPORTS FOR FILE VIEWERS ---
 // Create these components separately later
@@ -99,6 +99,8 @@ export default function Home() {
     const [showChat, setShowChat] = useState(false);
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
+    const [summary, setSummary] = useState<string>(''); // Summary state
+    const [isSummarizing, setIsSummarizing] = useState<boolean>(false); // Summarizing state
 
     // Refs
     const { toast } = useToast();
@@ -172,7 +174,7 @@ export default function Home() {
             saveUploadHistory(processedFile); // Save to history
             toast({ title: "File Ready", description: `${processedFile.name} processed.`, variant: "success" });
             // Optionally auto-open chat or show summary based on type?
-            // setShowChat(true);
+            setShowChat(true);
         } else {
              setUploadedFile(null); // Handle case where processing is cancelled or returns null
         }
@@ -266,7 +268,7 @@ export default function Home() {
                 />
 
                 {/* Main Content Area */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-28 md:pt-2 sm:pt-4 pb-24 md:pb-32">
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-28 md:pt-2 sm:pt-24 pb-24 md:pb-32">
                     {/* Tab Content */}
                     <AnimatePresence mode="wait">
                         {/* --- Upload Tab --- */}
@@ -284,6 +286,7 @@ export default function Home() {
                                 ) : (
                                     <>
                                        
+                                       { !uploadedFile && <FeatureBanner /> }
                                         <UploadInteract
                                             // These props allow UploadInteract to manage the upload UI and trigger processing
                                             uploadedFile={uploadedFile}
@@ -292,9 +295,8 @@ export default function Home() {
                                             xp={xp}
                                             setXp={setXp}
                                             toast={toast}
-                                            />
-                                             <FeatureBanner //className="flex-grow flex flex-col outline-none pt-20 md:mt-26   pb-20 space-y-6"
                                         />
+                                        
                                     </>
                                 )}
                             </motion.div>
