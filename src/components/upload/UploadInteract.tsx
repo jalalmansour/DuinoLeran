@@ -90,7 +90,7 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
       setIsChatLoading(false);
     }
     // Warning: Do not include triggerSummarization directly in deps array if it causes loops
-  }, [uploadedFile]); // Only run when the uploadedFile prop changes
+  }, [uploadedFile, triggerSummarization]); // Only run when the uploadedFile prop changes
 
   // Callback passed to UploadArea component
   // This function is called when UploadArea has selected a file
