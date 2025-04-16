@@ -1,29 +1,29 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import UploadArea from '@/components/upload/UploadArea';
-// Import SummarySection and ChatSection if they are defined elsewhere
-// For this example, we assume they exist.
-import SummarySection from '@/components/summary/SummarySection';
-import ChatSection from '@/components/chat/ChatSection';
+import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { cn } from '@/lib/utils'; // Assuming cn is used for styling
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { File, ArrowLeft } from 'lucide-react'; // Added icons
-import { getFileIcon } from '@/components/upload/UploadArea'; // Ensure this function exists and is correctly imported
+import { File, ArrowLeft } from 'lucide-react';
+import { getFileIcon } from '@/components/upload/UploadArea';
+import { DocumentParser } from '@/lib/document-parser';
+import { GeminiService } from '@/lib/gemini';
+import { jsPDF } from 'jspdf'; // Import jsPDF library
+// import 'jspdf-autotable'; // Removed direct import
 
-// Define interfaces needed within this component or import them
 interface UploadedFile {
   id: string;
   name: string;
   type: string;
   size: number;
-  lastModified: number; // Added lastModified based on UploadArea usage
+  lastModified: number;
   content: string;
   contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
 }
@@ -39,15 +39,12 @@ interface UploadInteractProps {
   saveUploadHistory: (file: UploadedFile) => void;
   xp: number;
   setXp: (updater: number | ((prevXp: number) => number)) => void;
-  toast: any; // Use a more specific type if possible
+  toast: any;
 }
 
-// --- Placeholder/Simplified BasicFileInfo based on UploadArea's usage ---
 interface BasicFileInfo {
     id: string; name: string; type: string; size: number; lastModified: number;
 }
-// --- End Placeholder ---
-
 
 const UploadInteract: React.FC<UploadInteractProps> = ({
   uploadedFile,
@@ -61,62 +58,103 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
   const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
-  // State to control visibility based on upload status
-  const [showUploadArea, setShowUploadArea] = useState<boolean>(!uploadedFile); // Show if no file initially
-  const [showSummary, setShowSummary] = useState<boolean>(!!summary); // Show if summary exists
-  const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false); // Summary collapse state
+  const [showUploadArea, setShowUploadArea] = useState<boolean>(!uploadedFile);
+  const [showSummary, setShowSummary] = useState<boolean>(!!summary);
+  const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
+  const [exporting, setExporting] = useState(false);
 
-  // This effect runs when `uploadedFile` prop changes (e.g., from history load)
   useEffect(() => {
     if (uploadedFile) {
-        setShowUploadArea(false); // Hide upload area if a file is loaded
-        setChatHistory([]); // Clear previous chat
-        setSummary('');     // Clear previous summary
-        setShowSummary(false); // Hide summary until new one is fetched
-        triggerSummarization(uploadedFile); // Fetch new summary
+        setShowUploadArea(false);
+        setChatHistory([]);
+        setSummary('');
+        setShowSummary(false);
+        triggerSummarization(uploadedFile);
     } else {
-        setShowUploadArea(true); // Show upload area if file is cleared
+        setShowUploadArea(true);
         setChatHistory([]);
         setSummary('');
         setShowSummary(false);
     }
-  }, [uploadedFile]); // Dependency: uploadedFile prop
+  }, [uploadedFile]);
 
-  // Function to call the summarization API
+
+  const handleFileSelected = useCallback(async (fileInfo: BasicFileInfo) => {
+    let fileContent = '';
+    let contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other' = 'text';
+
+    try {
+      const file = await fetch(URL.createObjectURL(new File([], fileInfo.name, { type: fileInfo.type }))).then(r => r.blob());
+
+      if (fileInfo.type.startsWith('text/')) {
+        fileContent = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = (e) => reject(e);
+          reader.readAsText(file);
+        });
+        contentType = 'text';
+      } else if (fileInfo.type.startsWith('application/json')) {
+        fileContent = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = (e) => reject(e);
+          reader.readAsText(file);
+        });
+        contentType = 'metadata';
+      } else {
+        // For other file types, use a placeholder or an empty string
+        fileContent = `*Note: Content extraction for file type "${fileInfo.type}" is not yet supported. AI may not work.*`;
+        contentType = 'other';
+      }
+
+      const newUploadedFile: UploadedFile = {
+        ...fileInfo,
+        content: fileContent,
+        contentType: contentType,
+      };
+
+      setUploadedFile(newUploadedFile);
+      saveUploadHistory(newUploadedFile);
+
+    } catch (error: any) {
+      console.error('Error reading file content:', error);
+      toast({ title: 'File Reading Error', description: error.message || 'Could not read file.', variant: 'destructive' });
+    }
+  }, [setUploadedFile, saveUploadHistory, toast]);
+
+
   const triggerSummarization = useCallback(async (file: UploadedFile) => {
-    // Basic check: only summarize text content
-    if (file.contentType !== 'text' || !file.content) {
-        setSummary(`*Note: Automatic summary not available for this file type (${file.contentType}).*`);
-        setShowSummary(true);
-        setIsSummarizing(false);
-        return;
+    if (!file.content) {
+      setSummary('*Note: Automatic summary not available due to missing content.*');
+      setShowSummary(true);
+      setIsSummarizing(false);
+      return;
     }
 
     setIsSummarizing(true);
-    setShowSummary(true); // Show the section, it will display loading state
-    setSummary(''); // Clear previous summary before fetching
+    setShowSummary(true);
+    setSummary('');
 
     try {
-      // Replace with your actual API endpoint
-      const response = await fetch('/api/summarize-document', { // Example endpoint
+      const response = await fetch('/api/summarize-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileContent: file.content }),
       });
 
       if (!response.ok) {
-        const errorData = await response.text(); // Get error text
+        const errorData = await response.text();
         throw new Error(errorData || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       if (data.summary) {
-          setSummary(data.summary);
-          setXp(prevXp => prevXp + 10); // Award XP for summary
+        setSummary(data.summary);
+        setXp(prevXp => prevXp + 10);
       } else {
-           throw new Error("Summary not found in API response.");
+        throw new Error("Summary not found in API response.");
       }
-
     } catch (error: any) {
       console.error('Error during summarization fetch:', error);
       setSummary(`*Error generating summary: ${error.message}*`);
@@ -124,25 +162,18 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     } finally {
       setIsSummarizing(false);
     }
-  }, [toast, setXp]); // Dependencies
-
-  // Callback passed to UploadArea
-  const handleFileSelected = useCallback((file: UploadedFile) => {
-      setUploadedFile(file); // Update parent state
-      saveUploadHistory(file); // Save history
-      // Summarization is triggered by the useEffect watching `uploadedFile`
-  }, [setUploadedFile, saveUploadHistory]); // Simplified dependencies
-
-    const handleBackButtonClick = () => {
-        setUploadedFile(null); // Clear the uploaded file
-        setShowUploadArea(true); // Show the UploadArea
-        setChatHistory([]); // Clear chat history
-        setSummary(''); // Clear summary
-        setShowSummary(false); // Hide the summary
-    };
+  }, [toast, setXp]);
 
 
-  // Function to handle sending chat message
+  const handleBackButtonClick = () => {
+    setUploadedFile(null);
+    setShowUploadArea(true);
+    setChatHistory([]);
+    setSummary('');
+    setShowSummary(false);
+  };
+
+
   const handleSendMessage = useCallback(async (message: string) => {
     if (!uploadedFile || !uploadedFile.content) {
       toast({ title: "No File Content", description: "Cannot chat without file content.", variant: "warning" });
@@ -154,27 +185,24 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     setIsChatLoading(true);
 
     try {
-       // Replace with your actual API endpoint
-      const response = await fetch('/api/chat-with-document', { // Example endpoint
+      const response = await fetch('/api/chat-with-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Send processed content and message
         body: JSON.stringify({ documentContent: uploadedFile.content, userMessage: message }),
       });
 
       if (!response.ok) {
-         const errorData = await response.text();
-         throw new Error(errorData || `HTTP error! status: ${response.status}`);
+        const errorData = await response.text();
+        throw new Error(errorData || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       if (data.response) {
-          setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
-          setXp(prevXp => prevXp + 5); // Award XP for chat
+        setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
+        setXp(prevXp => prevXp + 5);
       } else {
-          throw new Error("No response content from AI.");
+        throw new Error("No response content from AI.");
       }
-
     } catch (error: any) {
       console.error('Chat API error:', error);
       setChatHistory(prev => [...prev, { role: 'assistant', content: `*Error: ${error.message || 'Could not get response.'}*` }]);
@@ -182,18 +210,18 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     } finally {
       setIsChatLoading(false);
     }
-  }, [uploadedFile, toast, setXp]); // Dependencies
+  }, [uploadedFile, toast, setXp]);
 
-    const FileIconComponent = uploadedFile ? getFileIcon(uploadedFile.name) : File;
+
+  const FileIconComponent = uploadedFile ? getFileIcon(uploadedFile.name) : File;
+
 
   return (
     <>
-      {/* Conditionally render UploadArea */}
       {showUploadArea ? (
         <UploadArea onFileUploaded={handleFileSelected} />
       ) : (
         <div>
-          {/* Display file info and back button */}
           <div className="flex items-center justify-between p-4 bg-muted rounded-md mb-4">
             <div className="flex items-center">
               {React.createElement(FileIconComponent, { className: 'h-5 w-5 mr-2' })}
@@ -205,38 +233,33 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
             </Button>
           </div>
 
-          {/* Conditionally render Summary and Chat sections only if a file is uploaded */}
           {uploadedFile && (
             <Accordion type="multiple" className="w-full space-y-4 mt-6">
-              {/* Summary Section (Collapsible) */}
               <AccordionItem value="summary" className="border rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] glassmorphism overflow-hidden">
                 <AccordionTrigger className="px-4 py-2 text-sm font-medium hover:no-underline text-[hsl(var(--foreground))]">
                   AI Summary &amp; Analysis
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 border-t border-[hsl(var(--border)/0.5)]">
-                  {/* Render SummarySection (which should handle its own loading state) */}
                   <SummarySection
                     summary={summary}
                     isSummarizing={isSummarizing}
-                    uploadedFile={uploadedFile} // Pass file info if SummarySection needs it
+                    uploadedFile={uploadedFile}
                     isSummaryCollapsed={isSummaryCollapsed}
                     setIsSummaryCollapsed={setIsSummaryCollapsed}
                   />
                 </AccordionContent>
               </AccordionItem>
 
-              {/* Chat Section (Collapsible) */}
               <AccordionItem value="chat" className="border rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] glassmorphism overflow-hidden">
                 <AccordionTrigger className="px-4 py-2 text-sm font-medium hover:no-underline text-[hsl(var(--foreground))]">
                   Chat with Document
                 </AccordionTrigger>
                 <AccordionContent className="p-0 border-t border-[hsl(var(--border)/0.5)]">
-                  {/* Render ChatSection */}
                   <ChatSection
                     chatHistory={chatHistory}
                     isChatLoading={isChatLoading}
-                    uploadedFile={uploadedFile} // Pass file info for context
-                    onSendMessage={handleSendMessage} // Pass the send message handler
+                    uploadedFile={uploadedFile}
+                    onSendMessage={handleSendMessage}
                   />
                 </AccordionContent>
               </AccordionItem>
