@@ -2,12 +2,12 @@
 
 import React, { useCallback, useState } from 'react'; // Removed useEffect as it's not used
 import { useDropzone } from 'react-dropzone';
-import { Upload, File } from 'lucide-react'; // Only Upload icon needed here
+import { Upload, FileArchive, FileAudio, FileCode, FileText, FileImage, FileVideo, File as FileIcon, FileJson, FileWord } from 'lucide-react'; // Only Upload icon needed here
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 // Removed Card imports as we're styling the div directly
 import { cn } from '@/lib/utils';
-import { FileArchive, FileAudio, FileCode, FileCsv, FileImage, FilePdf, FileVideo, FileText, FileJson, FileWord } from "lucide-react";
+
 
 // Simplified UploadedFile stub - parent handles the real one
 interface BasicFileInfo {
@@ -161,8 +161,7 @@ const UploadArea: React.FC<UploadAreaProps> = ({ onFileUploaded }) => {
           <Progress value={uploadProgress * 10} className="h-1 [&gt;div]:bg-[hsl(var(--primary))]" />
           {/* Optional: <p className="text-xs text-muted-foreground mt-1 text-center">Selecting...</p> */}
         </div>
-      )}
-    </div>
+      </div>
   );
 };
 
@@ -174,7 +173,7 @@ export function getFileIcon(filename: string): React.FC<React.SVGProps<SVGSVGEle
 
   switch (extension) {
     case 'pdf':
-      return FilePdf;
+      return FileArchive;
     case 'doc':
     case 'docx':
       return FileWord;
@@ -183,7 +182,6 @@ export function getFileIcon(filename: string): React.FC<React.SVGProps<SVGSVGEle
     case 'js':
     case 'ts':
     case 'jsx':
-    case 'tsx':
       return FileCode;
     case 'json':
       return FileJson;
@@ -202,6 +200,6 @@ export function getFileIcon(filename: string): React.FC<React.SVGProps<SVGSVGEle
     case 'rar':
       return FileArchive;
     default:
-      return File;
+      return FileIcon;
   }
 }
