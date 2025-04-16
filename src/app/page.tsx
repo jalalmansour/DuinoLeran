@@ -266,14 +266,16 @@ export default function Home() {
                 />
 
                 {/* Main Content Area */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-20 md:pt-32 pb-24 md:pb-32">
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-28 md:pt-2 sm:pt-4 pb-24 md:pb-32">
                     {/* Tab Content */}
                     <AnimatePresence mode="wait">
                         {/* --- Upload Tab --- */}
                         {activeTab === "upload" && (
                             <motion.div
                                 key="upload-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit"
-                                className="flex-grow flex flex-col items-center outline-none mt-4 md:mt-12 space-y-6"
+                                //className="flex-grow flex flex-col items-center outline-none mt-4 md:mt-12 space-y-6"
+                                className="flex-grow flex flex-col outline-none pt-20 md:mt-2 sm:pt-24  pb-20 space-y-6"// Added top margin
+                            
                              >
                                 {isProcessing ? (
                                      <ViewerLoading message="Processing File..." /> // Use loading component
@@ -281,14 +283,17 @@ export default function Home() {
                                      renderFileViewer() // Render the specific viewer
                                 ) : (
                                     <>
-                                        <FeatureBanner />
+                                       
                                         <UploadInteract
                                             // These props allow UploadInteract to manage the upload UI and trigger processing
-                                            setIsProcessing={setIsProcessing}
-                                            onFileProcessed={handleFileProcessed}
+                                            uploadedFile={uploadedFile}
+                                            setUploadedFile={setUploadedFile}
+                                            saveUploadHistory={saveUploadHistory}
+                                            xp={xp}
+                                            setXp={setXp}
                                             toast={toast}
-                                            // Other props like xp/setXp are not needed by UploadInteract itself
-                                            // if parent handles state updates via onFileProcessed/saveUploadHistory
+                                            />
+                                             <FeatureBanner //className="flex-grow flex flex-col outline-none pt-20 md:mt-26   pb-20 space-y-6"
                                         />
                                     </>
                                 )}
