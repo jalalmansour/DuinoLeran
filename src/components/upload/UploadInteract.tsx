@@ -1,3 +1,4 @@
+// src/components/upload/UploadInteract.tsx
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -86,7 +87,7 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     setIsChatLoading(true);
     setChatHistory(prev => [...prev, { role: 'user', content: message }]);
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/ai/flows/chat-with-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentContent: uploadedFile?.content, userMessage: message }),
