@@ -1,4 +1,3 @@
-// src/app/faq/page.tsx
 'use client';
 
 import React from 'react';
@@ -9,6 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'; // Assuming you have Shadcn UI components
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const faqData = [
   {
@@ -50,14 +50,16 @@ const FAQPage: React.FC = () => {
       transition={{ duration: 0.5 }}
     >
       <h1 className="text-3xl font-bold text-center mb-8">Frequently Asked Questions</h1>
-      <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto">
-        {faqData.map((item, index) => (
-          <AccordionItem key={index} value={`item-${index}`}>
-            <AccordionTrigger>{item.question}</AccordionTrigger>
-            <AccordionContent>{item.answer}</AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+       <ScrollArea className="max-h-[60vh] w-full max-w-3xl mx-auto">
+        <Accordion type="single" collapsible className="w-full">
+          {faqData.map((item, index) => (
+            <AccordionItem key={index} value={`item-${index}`}>
+              <AccordionTrigger>{item.question}</AccordionTrigger>
+              <AccordionContent>{item.answer}</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </ScrollArea>
       <p className="text-center mt-12 text-muted-foreground">
         Still have questions? Contact us at <a href="mailto:support@duinolearn.ai" className="text-blue-500">support@duinolearn.ai</a>
       </p>
