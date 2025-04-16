@@ -1,16 +1,19 @@
-// src/components/upload/UploadInteract.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import UploadArea from '@/components/upload/UploadArea';
 import SummarySection from '@/components/summary/SummarySection';
 import ChatSection from '@/components/chat/ChatSection';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react'; // Import FileText icon
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Card, CardContent } from '@/components/ui/card'; // Import Card and CardContent
+import { cn } from '@/lib/utils';
 
 // Define interfaces needed within this component or import them
 interface UploadedFile {
@@ -47,17 +50,16 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
   // State related to summary/chat likely belongs here now
   const [summary, setSummary] = useState<string>('');
   const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
-  const [isSummaryCollapsed, setIsSummaryCollapsed] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
+  const [showUploadArea, setShowUploadArea] = useState<boolean>(true);
+  const [showSummary, setShowSummary] = useState<boolean>(false);
 
   // Callback to handle the file upload from UploadArea
   const handleFileUploaded = useCallback(async (file: UploadedFile) => {
     setUploadedFile(file);
     saveUploadHistory(file); // Save to history using the passed function
-    // Trigger analysis or other actions needed within this component
-    // e.g., call a local summarize function or pass the file up if needed
-    toast({ title: 'File Ready in Interact', description: file.name });
+    setShowUploadArea(false); // Hide the upload area
 
     // Summarize the document after upload
     setIsSummarizing(true);
@@ -70,6 +72,7 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
       if (response.ok) {
         const data = await response.json();
         setSummary(data.summary);
+        setShowSummary(true);
       } else {
         console.error('Failed to summarize document:', response.statusText);
         toast({ title: 'Error', description: 'Failed to summarize document.', variant: 'destructive' });
@@ -107,41 +110,46 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
   };
 
   return (
-    <>
-      <div className="mt-24">
+    
+      {showUploadArea ? (
         <UploadArea onFileUploaded={handleFileUploaded} />
-      </div>
+      ) : null}
 
       {uploadedFile && (
-        <div className="mt-6 space-y-4">
-          <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="summary">
-                  <AccordionTrigger>Summary</AccordionTrigger>
-                  <AccordionContent>
-                      <SummarySection
-                          summary={summary}
-                          isSummarizing={isSummarizing}
-                          uploadedFile={uploadedFile}
-                          isSummaryCollapsed={isSummaryCollapsed}
-                          setIsSummaryCollapsed={setIsSummaryCollapsed}
-                      />
-                  </AccordionContent>
-              </AccordionItem>
-            <AccordionItem value="chat">
-                <AccordionTrigger>Chat with Document</AccordionTrigger>
-                <AccordionContent>
-                <ChatSection
-                    chatHistory={chatHistory}
-                    isChatLoading={isChatLoading}
+        
+          {showSummary && (
+            
+              
+                Summary
+              
+              
+                
+                  <SummarySection
+                    summary={summary}
+                    isSummarizing={isSummarizing}
                     uploadedFile={uploadedFile}
-                    onSendMessage={handleSendMessage}
+                  />
+                
+              
+            
+          )}
+          
+              
+                Chat with Document
+              
+              
+                <ChatSection
+                  chatHistory={chatHistory}
+                  isChatLoading={isChatLoading}
+                  uploadedFile={uploadedFile}
+                  onSendMessage={handleSendMessage}
                 />
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
-        </div>
+              
+            
+          
+        
       )}
-    </>
+    
   );
 };
 
