@@ -15,7 +15,7 @@ import {
 import { cn } from '@/lib/utils'; // Assuming cn is used for styling
 import { Button } from '@/components/ui/button';
 import { File, ArrowLeft } from 'lucide-react'; // Added icons
-import { getFileIcon } from '@/app/page'; // Ensure this function exists and is correctly imported
+import { getFileIcon } from '@/components/upload/UploadArea'; // Ensure this function exists and is correctly imported
 
 // Define interfaces needed within this component or import them
 interface UploadedFile {
