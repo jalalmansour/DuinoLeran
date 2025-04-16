@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, File as DefaultFileIcon } from 'lucide-react'; // Import default icon
+import { ArrowLeft, File as DefaultFileIcon, UploadCloud } from 'lucide-react'; // Import default icon
 // Import getFileIcon helper from UploadArea (ensure path is correct)
 import { getFileIcon } from '@/components/upload/UploadArea';
 // Import UploadArea component
@@ -95,7 +95,14 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
   // Callback passed to UploadArea component
   // This function is called when UploadArea has selected a file
   // It now reads the file content and sets the state for the parent (page.tsx)
-  const handleFileSelected = useCallback(async (file: File) => { // Expects the raw File object
+  const handleFileSelected = useCallback(async (fileOrFiles: File | File[]) => { // Expects the raw File object
+    let file:File;
+    if (Array.isArray(fileOrFiles)){
+      file = fileOrFiles[0];
+    } else {
+      file = fileOrFiles;
+    }
+
     let fileContent = '';
     let contentType: UploadedFile['contentType'] = 'text'; // Default guess
 
