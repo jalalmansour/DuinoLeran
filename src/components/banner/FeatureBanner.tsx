@@ -28,17 +28,108 @@ interface Feature {
 
 // List of features to cycle through
 const features: Feature[] = [
-  { title: "Analyze Any Document", description: "PDFs, DOCX, TXT - get summaries, explanations, and key insights.", icon: FileText },
-  { title: "Decode Presentations", description: "Extract key points, notes, and generate quizzes from PPTX slides.", icon: Presentation },
-  { title: "Understand Code Faster", description: "Explain code blocks, visualize logic flow, and get debugging hints (JS, Python, C++, etc.).", icon: FileCode2 },
-  { title: "Interactive Transcripts", description: "Transcribe audio/video and interact with clickable, timestamped text.", icon: MicVocal },
-  { title: "Unlock Book Knowledge", description: "Explore themes, characters, and literary devices in EPUBs and PDFs.", icon: BookOpen },
-  { title: "Explore Archives", description: "Preview contents and understand the purpose of ZIP, RAR files.", icon: FileArchive },
-  { title: "Explain Images & Diagrams", description: "Get descriptions, annotations, and text extraction from images.", icon: ImageIcon },
-  { title: "AI-Powered Summaries", description: "Instantly grasp the core concepts with concise AI-generated summaries.", icon: BrainCircuit },
-  { title: "Contextual Chat", description: "Ask specific questions about your uploaded content and get relevant answers.", icon: MessageSquare },
-  { title: "Adaptive Learning Tools", description: "Generate glossaries, quizzes, and key takeaways tailored to your file.", icon: Puzzle },
+  {
+    title: "Analyze Any Document",
+    description: "Upload PDFs, DOCX, or TXT files and receive structured summaries, deep explanations, and extracted insights tailored for fast comprehension.",
+    icon: FileText,
+  },
+  {
+    title: "Decode Presentations",
+    description: "Understand slides in depth with extracted bullet points, speaker notes, and even auto-generated quizzes from PPT and PPTX files.",
+    icon: Presentation,
+  },
+  {
+    title: "Understand Code Faster",
+    description: "Drop code in any language—JavaScript, Python, C++, and more—to get logical breakdowns, visual flowcharts, and intelligent debugging assistance.",
+    icon: FileCode2,
+  },
+  {
+    title: "Interactive Transcripts",
+    description: "Upload audio or video files to generate clean, timestamped transcripts with clickable sections for direct navigation and Q&A.",
+    icon: MicVocal,
+  },
+  {
+    title: "Unlock Book Knowledge",
+    description: "Read EPUBs and book-like PDFs with AI-powered extraction of themes, character arcs, plot breakdowns, and literary device identification.",
+    icon: BookOpen,
+  },
+  {
+    title: "Explore Archives",
+    description: "Upload ZIP or RAR files to preview contents, auto-expand relevant materials, and receive an overview of contained documents or code.",
+    icon: FileArchive,
+  },
+  {
+    title: "Explain Images & Diagrams",
+    description: "Use images, flowcharts, or screenshots to extract embedded text, generate labels, and describe visual information intelligently.",
+    icon: ImageIcon,
+  },
+  {
+    title: "AI-Powered Summaries",
+    description: "Every file uploaded is summarized using advanced Gemini AI, helping students quickly understand core concepts and main ideas.",
+    icon: BrainCircuit,
+  },
+  {
+    title: "Contextual Chat",
+    description: "Chat with any uploaded document, code file, transcript, or image and get file-specific answers with citation-based memory.",
+    icon: MessageSquare,
+  },
+  {
+    title: "Adaptive Learning Tools",
+    description: "Automatically generate glossaries, key takeaways, flashcards, and practice quizzes based on the uploaded content and its structure.",
+    icon: Puzzle,
+  },
+  {
+    title: "Mathematical Solver & Visualizer",
+    description: "Drop in equations or math-rich images and get symbolic solutions, graph visualizations, and intuitive concept breakdowns.",
+    icon: BrainCircuit,
+  },
+  {
+    title: "Scientific Paper Explainer",
+    description: "Upload scientific PDFs and get AI-translated layman summaries, defined jargon, and annotated figures for clearer understanding.",
+    icon: FileText,
+  },
+  {
+    title: "Multimedia Learning Mode",
+    description: "Combine video, audio, and images into a synced interface with layered insights, dynamic highlights, and interactive timestamps.",
+    icon: Video,
+  },
+  {
+    title: "Language Learning Companion",
+    description: "Use foreign-language content to get translations, grammar breakdowns, conversational examples, and cultural insights.",
+    icon: MessageSquare,
+  },
+  {
+    title: "Compressed Code Review",
+    description: "Upload zipped code projects and receive a folder breakdown, dependency visualization, and auto-generated READMEs.",
+    icon: FileArchive,
+  },
+  {
+    title: "Custom Study Paths",
+    description: "Based on uploaded content, DuinoQuest builds step-based learning paths with checkpoints, reviews, and progress tracking.",
+    icon: Sparkles,
+  },
+  {
+    title: "Diagram Detection & Concept Mapping",
+    description: "Convert uploaded diagrams and flowcharts into interactive, clickable mind maps with concept-based AI breakdowns.",
+    icon: ImageIcon,
+  },
+  {
+    title: "File Type Auto-Detection",
+    description: "Upload anything—DuinoQuest smartly detects the file type, content, and best interaction mode for AI-powered processing.",
+    icon: Sparkles,
+  },
+  {
+    title: "Cross-File Knowledge Linking",
+    description: "Upload multiple documents to see how they relate—shared topics, questions, and a merged explanation layer.",
+    icon: Puzzle,
+  },
+  {
+    title: "Accessibility Enhanced Mode",
+    description: "Screen-reader support, dyslexia-friendly fonts, captioning, color-blind safe palettes, and dark/light/cyberpunk themes.",
+    icon: BookOpen,
+  },
 ];
+
 
 // Animation variants for the feature slides
 const variants = {
