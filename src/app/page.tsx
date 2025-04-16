@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 // --- Core React & Next.js ---
@@ -16,7 +17,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react'; // Loader, X icon
 
 // --- Utilities & Hooks ---
 import { cn } from '@/lib/utils';
@@ -26,20 +27,33 @@ import { useThemeStore, themes, useHasHydrated, type ThemeId } from '@/hooks/use
 // --- Custom Components & Types ---
 import Header, { type ActiveTabValue } from '@/components/header';
 import Footer from '@/components/footer';
-import FeatureBanner from '@/components/banner/FeatureBanner'; 
-// Dynamically import the main interaction component
+import FeatureBanner from '@/components/banner/FeatureBanner';
+// Dynamically import UploadInteract as it handles complex client-side logic/libs
 const UploadInteract = dynamic(() => import('@/components/upload/UploadInteract'), {
-    loading: () => (
-        <div className="flex items-center justify-center h-60">
-            <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))]" />
-            <p className="ml-2 text-[hsl(var(--muted-foreground))]">Loading Interface...</p>
-        </div>
-    ),
+    loading: () => <ViewerLoading message="Loading Uploader..." />, // Use ViewerLoading
     ssr: false,
 });
+// Keep FAQPage static for now, dynamic import if it becomes heavy
+import FAQPage from './faq';
+// Dynamically import ChatSection as it's conditionally rendered
+const ChatSection = dynamic(() => import('@/components/chat/ChatSection'), {
+    loading: () => <ViewerLoading message="Loading Chat..." />, // Use ViewerLoading
+    ssr: false
+});
+import FloatingButton from '@/components/FloatingButton'; // Keep static if small
 
-// Dynamically import FAQ page
-const FAQPage = dynamic(() => import('./faq'), { ssr: true });
+// --- DYNAMIC IMPORTS FOR FILE VIEWERS ---
+// Create these components separately later
+const DocumentViewer = dynamic(() => import('@/components/viewers/DocumentViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const PresentationViewer = dynamic(() => import('@/components/viewers/PresentationViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const CodeViewer = dynamic(() => import('@/components/viewers/CodeViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const AudioViewer = dynamic(() => import('@/components/viewers/AudioViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const VideoViewer = dynamic(() => import('@/components/viewers/VideoViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const BookViewer = dynamic(() => import('@/components/viewers/BookViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const ArchiveViewer = dynamic(() => import('@/components/viewers/ArchiveViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+const ImageViewer = dynamic(() => import('@/components/viewers/ImageViewer').catch(err => GenericFileViewer), { loading: () => <ViewerLoading /> });
+// Fallback viewer component (create this simple component)
+const GenericFileViewer = dynamic(() => import('@/components/viewers/GenericFileViewer'), { loading: () => <ViewerLoading /> });
 
 // --- Interfaces ---
 interface UploadedFile {
@@ -48,11 +62,10 @@ interface UploadedFile {
     type: string;
     size: number;
     lastModified: number;
-    content: string;
-    contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
+    content: any; // Content type varies (string, list, object, placeholder)
+    contentType: 'document' | 'presentation' | 'code' | 'audio' | 'video' | 'book' | 'archive' | 'list' | 'metadata' | 'image' | 'error' | 'other';
 }
 
-// Chat message type
 interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
@@ -60,8 +73,17 @@ interface ChatMessage {
 
 // --- Framer Motion Variants ---
 const tabContentVariants = { hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: 'easeOut' } }, exit: { opacity: 0, x: 10, transition: { duration: 0.2, ease: 'easeIn' } } };
+const floatingChatVariants = { hidden: { opacity: 0, y: 50, scale: 0.9 }, visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 120, damping: 15, duration: 0.4 } }, exit: { opacity: 0, y: 30, scale: 0.95, transition: { duration: 0.2, ease: "easeIn" } } };
 
-// --- Main Component ---
+// --- Loading Component ---
+const ViewerLoading = ({ message = "Loading..." }: { message?: string }) => (
+    <div className="flex items-center justify-center h-40 text-[hsl(var(--muted-foreground))]">
+        <Loader2 className="h-6 w-6 animate-spin mr-2 text-[hsl(var(--primary))]" />
+        {message}
+    </div>
+);
+
+// --- Main Page Component ---
 export default function Home() {
     const hasHydrated = useHasHydrated();
     // Theme State
@@ -69,39 +91,52 @@ export default function Home() {
     const setTheme = useThemeStore((state) => state.setTheme);
     // Application State
     const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+    const [isProcessing, setIsProcessing] = useState<boolean>(false); // For UploadInteract loading state
     const [uploadHistory, setUploadHistory] = useState<UploadedFile[]>([]);
     const [activeTab, setActiveTab] = useState<ActiveTabValue>("upload");
     const [xp, setXp] = useState<number>(0);
+    // Floating Chat State
+    const [showChat, setShowChat] = useState(false);
+    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+    const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
 
     // Refs
     const { toast } = useToast();
     const headerRef = useRef<HTMLElement>(null);
 
-    // Effects
-    useEffect(() => { // Load initial state
+    // --- Effects ---
+    useEffect(() => { // Load initial state (history, XP) from localStorage
         try { const storedHistory = localStorage.getItem('uploadHistory'); if (storedHistory) setUploadHistory(JSON.parse(storedHistory)); } catch (e) { console.error('Failed to parse upload history:', e); localStorage.removeItem('uploadHistory'); }
         try { const storedXp = localStorage.getItem('userXp'); if (storedXp) setXp(parseInt(storedXp, 10) || 0); } catch (e) { console.error('Failed to parse user XP:', e); localStorage.removeItem('userXp'); }
     }, []);
 
-    useEffect(() => { // Save XP
-        if (xp > 0 || localStorage.getItem('userXp')) {
+    useEffect(() => { // Save XP to localStorage when it changes
+        if (xp > 0 || localStorage.getItem('userXp')) { // Avoid saving initial 0 unless it was loaded
            localStorage.setItem('userXp', xp.toString());
         }
     }, [xp]);
 
     const [particlesInit, setParticlesInit] = useState(false);
-    useEffect(() => { // Init Particles
+    useEffect(() => { // Initialize background particles
         initParticlesEngine(async (engine) => { await loadSlim(engine); }).then(() => setParticlesInit(true));
     }, []);
 
-    const { scrollY } = useScroll(); // Header Scroll Animation
+    const { scrollY } = useScroll(); // Header scroll animation effect
     const underlineScaleX = useTransform(scrollY, [0, 50], [0, 1], { clamp: false });
+
+    // Effect to reset chat when file changes
+    useEffect(() => {
+        if (!uploadedFile) {
+            setShowChat(false); // Hide chat if file is cleared
+        }
+        setChatHistory([]); // Clear history when file changes
+    }, [uploadedFile]);
 
     // --- Callbacks ---
     const saveUploadHistory = useCallback((file: UploadedFile) => {
       setUploadHistory((prev) => {
         if (prev.some(i => i.name === file.name && i.lastModified === file.lastModified)) return prev;
-        const newHistory = [file, ...prev].slice(0, 15);
+        const newHistory = [file, ...prev].slice(0, 15); // Limit history
         try { localStorage.setItem('uploadHistory', JSON.stringify(newHistory)); }
         catch (e: any) { toast({ title: 'Error Saving History', variant: 'warning' }); return prev; }
         return newHistory;
@@ -115,13 +150,84 @@ export default function Home() {
      const loadFileFromHistory = useCallback(async (fileId: string) => {
         const fileToLoad = uploadHistory.find(f => f.id === fileId);
         if (fileToLoad) {
-          if (!fileToLoad.content) { toast({ title: 'Content Missing', variant: 'warning' }); return; }
-          setUploadedFile(fileToLoad);
-          setActiveTab("upload");
+          // Basic content check (might need more robust check depending on content types)
+          if (!fileToLoad.content && !['image','audio','video','archive'].includes(fileToLoad.contentType)) {
+              toast({ title: 'Content Missing', description:`Stored data for ${fileToLoad.name} is incomplete.`, variant: 'warning' });
+              return;
+          }
+          setUploadedFile(fileToLoad); // Set the file state
+          setActiveTab("upload"); // Switch view to the main interaction tab
           toast({ title: 'File Loaded from History', variant: 'info' });
         } else { toast({ title: 'Error Loading File', variant: 'destructive' }); }
       }, [uploadHistory, toast, setActiveTab]);
 
+    // --- Callback from UploadInteract when processing is complete ---
+    const handleFileProcessed = useCallback((processedFile: UploadedFile | null, error?: string) => {
+        setIsProcessing(false); // Turn off processing indicator
+        if (error) {
+            toast({ title: "File Processing Error", description: error, variant: "destructive" });
+            setUploadedFile(null); // Clear file state on error
+        } else if (processedFile) {
+            setUploadedFile(processedFile); // Set the processed file data
+            saveUploadHistory(processedFile); // Save to history
+            toast({ title: "File Ready", description: `${processedFile.name} processed.`, variant: "success" });
+            // Optionally auto-open chat or show summary based on type?
+            // setShowChat(true);
+        } else {
+             setUploadedFile(null); // Handle case where processing is cancelled or returns null
+        }
+    }, [toast, saveUploadHistory]);
+
+     // --- Chat Message Handler ---
+    const handleSendMessage = useCallback(async (message: string) => {
+        if (!uploadedFile) { toast({ title: "Error", description: "No file loaded.", variant: "destructive" }); return; }
+        // Allow chatting even with placeholder content, AI might handle it
+        if (!uploadedFile.content && !['image','audio','video','archive'].includes(uploadedFile.contentType)) {
+            toast({ title: "Error", description: "File content is missing or invalid.", variant: "warning" }); return;
+        }
+
+        const userMessage: ChatMessage = { role: 'user', content: message };
+        setChatHistory(prev => [...prev, userMessage]);
+        setIsChatLoading(true);
+
+        try {
+            const response = await fetch('/api/chat-with-document', { // Ensure this API route exists
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ documentContent: uploadedFile.content, userMessage: message }),
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.statusText || response.status}`);
+            const data = await response.json();
+            if (data.response) { setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]); setXp(prev => prev + 5); }
+            else { throw new Error("No response content from AI."); }
+        } catch (error: any) {
+            console.error('Chat API error:', error);
+            setChatHistory(prev => [...prev, { role: 'assistant', content: `*Error: ${error.message || 'Could not get response.'}*` }]);
+            toast({ title: 'Chat Error', description: error.message || 'Failed to get AI response.', variant: 'destructive' });
+        } finally { setIsChatLoading(false); }
+    }, [toast, setXp, uploadedFile]);
+
+
+    // --- Helper to render the correct viewer based on contentType ---
+    const renderFileViewer = () => {
+        if (!uploadedFile) return <p className="text-center text-muted-foreground italic">No file selected.</p>;
+
+        const commonViewerProps = { file: uploadedFile }; // Pass the file data
+
+        switch (uploadedFile.contentType) {
+            case 'document': return <DocumentViewer {...commonViewerProps} />;
+            case 'presentation': return <PresentationViewer {...commonViewerProps} />;
+            case 'code': return <CodeViewer {...commonViewerProps} />;
+            case 'audio': return <AudioViewer {...commonViewerProps} />;
+            case 'video': return <VideoViewer {...commonViewerProps} />;
+            case 'book': return <BookViewer {...commonViewerProps} />;
+            case 'archive': case 'list': return <ArchiveViewer {...commonViewerProps} />; // Group list under archive view
+            case 'image': return <ImageViewer {...commonViewerProps} />;
+            case 'error': // Show specific error view or fallback
+            case 'other':
+            case 'metadata': // Metadata might be handled by generic view or specific ones (like audio/video)
+            default: return <GenericFileViewer {...commonViewerProps} />;
+        }
+    };
 
     // --- Particle Config ---
     const particleOptions = React.useMemo(() => {
@@ -130,7 +236,7 @@ export default function Home() {
             case 'cyberpunk': case 'matrix-code': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#0ff", "#f0f", "#0f0"] }, links: { ...baseConfig.particles.links, color: "#0ff", opacity: 0.15 }, opacity: { value: { min: 0.2, max: 0.6 } } } };
             case 'dark-luxe': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#D4AF37", "#C0C0C0", "#A0A0A0"] }, links: { ...baseConfig.particles.links, color: "#B0B0C0", opacity: 0.08 }, opacity: { value: { min: 0.1, max: 0.4 } } } };
             case 'glassmorphism': case 'minimal-light': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#a0a0ff", "#a0d0ff", "#c0c0ff"] }, links: { ...baseConfig.particles.links, color: "#c0c0c0", opacity: 0.2 }, opacity: { value: { min: 0.3, max: 0.7 } } } };
-            case 'pastel-dream': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#FFA07A", "#FF6347", "#FF4500"] }, links: { ...baseConfig.particles.links, color: "#FF7F50", opacity: 0.1 }, opacity: { value: { min: 0.2, max: 0.5 } } } };
+            case 'pastel-dream': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#FFB6C1", "#ADD8E6", "#98FB98"] }, links: { ...baseConfig.particles.links, color: "#DDA0DD", opacity: 0.15 }, opacity: { value: { min: 0.2, max: 0.6 } } } };
             case 'sunset-gradient': return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: ["#FFA07A", "#FF6347", "#FF4500"] }, links: { ...baseConfig.particles.links, color: "#FF7F50", opacity: 0.1 }, opacity: { value: { min: 0.2, max: 0.5 } } } };
             case 'retro-terminal': return { ...baseConfig, interactivity: { ...baseConfig.interactivity, onHover: { enable: false }}, particles: { ...baseConfig.particles, number: { value: 20 }, color: { value: ["#00FF00"] }, links: { enable: false }, opacity: { value: 0.7 }, size: { value: 1.5 } } };
             default: return { ...baseConfig, particles: { ...baseConfig.particles, color: { value: "#ffffff" }, links: { color: "#ffffff", opacity: 0.1 }, opacity: { value: { min: 0.1, max: 0.4 } } } };
@@ -157,137 +263,76 @@ export default function Home() {
                     currentTheme={theme}
                     setTheme={setTheme}
                     availableThemes={themes}
-                >
-                    {/* Title */}
-                    <motion.h1 className="text-2xl md:text-3xl font-bold tracking-tighter gradient-text filter drop-shadow-[0_0_5px_hsla(var(--primary),0.4)] py-1 relative" style={{ fontFamily: 'var(--font-display, var(--font-sans))' }}>
-                        DuinoCourse AI
-                        <motion.div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[hsl(var(--primary))] to-transparent shadow-[0_0_8px_hsl(var(--primary))]" style={{ scaleX: underlineScaleX, originX: 0.5 }}/>
-                    </motion.h1>
-                </Header>
+                />
 
-                {/* Main Content Area - Added pb-24 */}
-                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-18  pb-24">    {/* Tab Content */}
+                {/* Main Content Area */}
+                <main className="container mx-auto flex flex-col flex-grow p-4 md:p-6 space-y-6 relative z-10 pt-20 md:pt-32 pb-24 md:pb-32">
+                    {/* Tab Content */}
                     <AnimatePresence mode="wait">
+                        {/* --- Upload Tab --- */}
                         {activeTab === "upload" && (
                             <motion.div
-                                key="upload-content"
-                                variants={tabContentVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="exit"
-                                className="flex-grow flex flex-col outline-none md:mt-16 pt-14  pb-20"// Added top margin
+                                key="upload-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit"
+                                className="flex-grow flex flex-col items-center outline-none mt-4 md:mt-12 space-y-6"
                              >
-                                {/* Conditionally render FeatureBanner */}
-                                {!uploadedFile && <FeatureBanner />}
-
-                                <UploadInteract                                
-                                    uploadedFile={uploadedFile}
-                                    setUploadedFile={setUploadedFile}
-                                    saveUploadHistory={saveUploadHistory}
-                                    xp={xp}
-                                    setXp={setXp}
-                                    toast={toast}
-                                />
+                                {isProcessing ? (
+                                     <ViewerLoading message="Processing File..." /> // Use loading component
+                                ) : uploadedFile ? (
+                                     renderFileViewer() // Render the specific viewer
+                                ) : (
+                                    <>
+                                        <FeatureBanner />
+                                        <UploadInteract
+                                            // These props allow UploadInteract to manage the upload UI and trigger processing
+                                            setIsProcessing={setIsProcessing}
+                                            onFileProcessed={handleFileProcessed}
+                                            toast={toast}
+                                            // Other props like xp/setXp are not needed by UploadInteract itself
+                                            // if parent handles state updates via onFileProcessed/saveUploadHistory
+                                        />
+                                    </>
+                                )}
                             </motion.div>
                         )}
 
+                        {/* --- History Tab --- */}
                         {activeTab === "history" && (
-                            <motion.div
-                                key="history-content"
-                                variants={tabContentVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="exit"
-                                className="flex-grow flex flex-col outline-none mt-10" // Added top margin
-                            >
+                            <motion.div key="history-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none mt-4 md:mt-12">
                                 <Card className="glassmorphism h-full flex flex-col">
                                     <CardHeader>
                                         <CardTitle className="text-[hsl(var(--primary))]">Access Logs</CardTitle>
                                         <CardDescription className="text-[hsl(var(--muted-foreground))]">Review and reload previous uploads.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow p-4">
-                                        {uploadHistory.length === 0 ? (
-                                            <p className="text-center text-[hsl(var(--muted-foreground))] italic">No history records found.</p>
-                                        ) : (
-                                            <ScrollArea className="h-[calc(60vh-100px)] pr-3 scrollbar-thin">
-                                                <ul className="space-y-3">
-                                                    {uploadHistory.map(file => (
-                                                        <li key={file.id} className="flex items-center justify-between p-3 border border-[hsl(var(--border))] rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] hover:bg-[hsl(var(--accent)/0.1)] transition-colors">
-                                                            <span className="truncate text-sm" title={file.name}>{file.name}</span>
-                                                            <ShadcnButton variant="outline" size="sm" onClick={() => loadFileFromHistory(file.id)}>Load</ShadcnButton>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </ScrollArea>
-                                        )}
-                                        {uploadHistory.length > 0 && (
-                                           <div className="mt-4 pt-4 border-t border-[hsl(var(--border)/0.5)] text-center">
-                                              <ShadcnButton variant="destructive" size="sm" onClick={clearUploadHistory}>Clear All History</ShadcnButton>
-                                           </div>
-                                        )}
+                                        {uploadHistory.length === 0 ? ( <p className="text-center text-[hsl(var(--muted-foreground))] italic">No history records found.</p> )
+                                         : ( <ScrollArea className="h-[calc(60vh-100px)] pr-3 scrollbar-thin"> <ul className="space-y-3"> {uploadHistory.map(file => ( <li key={file.id} className="flex items-center justify-between p-3 border border-[hsl(var(--border))] rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] hover:bg-[hsl(var(--accent)/0.1)] transition-colors"> <span className="truncate text-sm" title={file.name}>{file.name}</span> <ShadcnButton variant="outline" size="sm" onClick={() => loadFileFromHistory(file.id)}>Load</ShadcnButton> </li> ))} </ul> </ScrollArea> )}
+                                        {uploadHistory.length > 0 && ( <div className="mt-4 pt-4 border-t border-[hsl(var(--border)/0.5)] text-center"> <ShadcnButton variant="destructive" size="sm" onClick={clearUploadHistory}>Clear All History</ShadcnButton> </div> )}
                                     </CardContent>
                                 </Card>
                             </motion.div>
                         )}
 
+                        {/* --- Settings Tab --- */}
                         {activeTab === "settings" && (
-                             <motion.div
-                                key="settings-content"
-                                variants={tabContentVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="exit"
-                                className="flex-grow flex flex-col outline-none mt-10" // Added top margin
-                            >
+                             <motion.div key="settings-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none mt-4 md:mt-12">
                                  <Card className="glassmorphism h-full">
-                                    <CardHeader>
-                                        <CardTitle className="text-[hsl(var(--primary))]">Preferences</CardTitle>
-                                        <CardDescription className="text-[hsl(var(--muted-foreground))]">Configure interface appearance.</CardDescription>
-                                    </CardHeader>
+                                    <CardHeader> <CardTitle className="text-[hsl(var(--primary))]">Preferences</CardTitle> <CardDescription className="text-[hsl(var(--muted-foreground))]">Configure interface appearance.</CardDescription> </CardHeader>
                                     <CardContent className="grid gap-6 p-6">
-                                        {/* Theme Selector */}
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4 border border-[hsl(var(--border))] p-4 rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] backdrop-blur-sm">
-                                            <div className="space-y-0.5 flex-shrink-0">
-                                                 <Label htmlFor="theme-select" className="text-base font-medium text-[hsl(var(--foreground))]">Visual Theme</Label>
-                                                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Select the interface appearance.</p>
-                                             </div>
-                                             <Select value={theme} onValueChange={(value) => setTheme(value as ThemeId)} disabled={!hasHydrated}>
-                                                 <SelectTrigger id="theme-select" className="w-full sm:w-[220px]">
-                                                     <SelectValue placeholder={!hasHydrated ? "Loading..." : "Select Theme"} />
-                                                 </SelectTrigger>
-                                                 <SelectContent>
-                                                     <SelectGroup>
-                                                        <SelectLabel>Select Theme</SelectLabel>
-                                                        {themes.map((t) => ( <SelectItem key={t.id} value={t.id}><span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem> ))}
-                                                     </SelectGroup>
-                                                 </SelectContent>
-                                             </Select>
+                                            <div className="space-y-0.5 flex-shrink-0"> <Label htmlFor="theme-select" className="text-base font-medium text-[hsl(var(--foreground))]">Visual Theme</Label> <p className="text-sm text-[hsl(var(--muted-foreground))]">Select the interface appearance.</p> </div>
+                                             <Select value={theme} onValueChange={(value) => setTheme(value as ThemeId)} disabled={!hasHydrated}> <SelectTrigger id="theme-select" className="w-full sm:w-[220px]"> <SelectValue placeholder={!hasHydrated ? "Loading..." : "Select Theme"} /> </SelectTrigger> <SelectContent> <SelectGroup> <SelectLabel>Select Theme</SelectLabel> {themes.map((t) => ( <SelectItem key={t.id} value={t.id}><span className='mr-2 text-lg leading-none'>{t.icon}</span> {t.name}</SelectItem> ))} </SelectGroup> </SelectContent> </Select>
                                         </div>
-                                         {/* Add other settings here */}
                                     </CardContent>
                                 </Card>
                             </motion.div>
                         )}
 
+                        {/* --- FAQ Tab --- */}
                         {activeTab === "faq" && (
-                            <motion.div
-                                key="faq-content"
-                                variants={tabContentVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="exit"
-                                className="flex-grow flex flex-col outline-none mt-10"// Added top margin
-                            >
+                            <motion.div key="faq-content" variants={tabContentVariants} initial="hidden" animate="visible" exit="exit" className="flex-grow flex flex-col outline-none mt-4 md:mt-12">
                                 <Card className="glassmorphism h-full flex flex-col">
-                                    <CardHeader>
-                                        <CardTitle className="text-[hsl(var(--primary))]">Knowledge Base</CardTitle>
-                                        <CardDescription className="text-[hsl(var(--muted-foreground))]">Frequently Asked Questions.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow p-0">
-                                       <ScrollArea className="h-full max-h-[65vh] p-6 scrollbar-thin">
-                                           <FAQPage /> {/* Render the FAQ component */}
-                                       </ScrollArea>
-                                    </CardContent>
+                                    <CardHeader> <CardTitle className="text-[hsl(var(--primary))]">Knowledge Base</CardTitle> <CardDescription className="text-[hsl(var(--muted-foreground))]">Frequently Asked Questions.</CardDescription> </CardHeader>
+                                    <CardContent className="flex-grow p-0"> <ScrollArea className="h-full max-h-[65vh] p-6 scrollbar-thin"> <FAQPage /> </ScrollArea> </CardContent>
                                  </Card>
                             </motion.div>
                         )}
@@ -297,6 +342,54 @@ export default function Home() {
 
                 {/* Footer */}
                 <Footer />
+
+                {/* --- Floating Chat Elements --- */}
+                {uploadedFile && (
+                    <>
+                        {/* Floating Button */}
+                        <div className="fixed bottom-6 right-6 z-50">
+                          <FloatingButton
+                            onClick={() => setShowChat(!showChat)}
+                            isVisible={!showChat} // Show button only when chat is hidden
+                          >
+                             {/* Use HelpCircle or MessageSquare icon */}
+                            <HelpCircle className="h-5 w-5" />
+                          </FloatingButton>
+                        </div>
+
+                        {/* Chat Window */}
+                        <AnimatePresence>
+                          {showChat && (
+                            <motion.div
+                              variants={floatingChatVariants}
+                              initial="hidden" animate="visible" exit="exit"
+                              className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40 w-[90%] max-w-lg" // Adjusted positioning
+                            >
+                              <Card className="p-0 overflow-hidden shadow-2xl border border-[hsl(var(--border)/0.7)] glassmorphism relative"> {/* Added relative */}
+                                {/* ChatSection handles internal layout */}
+                                <ChatSection
+                                  chatHistory={chatHistory}
+                                  isChatLoading={isChatLoading}
+                                  uploadedFile={uploadedFile}
+                                  onSendMessage={handleSendMessage}
+                                />
+                                {/* Close Button */}
+                                 <ShadcnButton
+                                     variant="ghost" size="icon"
+                                     className="absolute top-2 right-2 h-7 w-7 text-[hsl(var(--muted-foreground))] hover:bg-destructive/10 hover:text-destructive z-10" // Ensure button is clickable
+                                     onClick={() => setShowChat(false)}
+                                     aria-label="Close chat"
+                                 >
+                                     <X className="h-4 w-4"/>
+                                 </ShadcnButton>
+                              </Card>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                    </>
+                )}
+                {/* --- End Floating Chat Elements --- */}
+
             </div>
         </TooltipProvider>
     );
