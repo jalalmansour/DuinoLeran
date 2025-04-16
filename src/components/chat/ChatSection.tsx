@@ -38,7 +38,7 @@ interface UploadedFile {
   size: number;
   lastModified: number;
   content: string; // Content might be text, list, metadata etc.
-  contentType: 'text' | 'list' | 'metadata' | 'image' | 'error' | 'other';
+  contentType: 'text' | 'code' | 'document' | 'presentation' | 'book' | 'archive' | 'list' | 'metadata' | 'image' | 'error' | 'other';
 }
 
 interface ChatMessage {
@@ -228,7 +228,7 @@ const ChatSection: React.FC<ChatSectionProps> = ({
             {/* Card Content - Scrollable Chat Area */}
             <CardContent className="flex-1 overflow-hidden p-0">
                 {/* Use ScrollArea for the chat history */}
-                <ScrollArea className="h-full p-4" viewportRef={scrollAreaRef}> {/* Assign ref to viewport */}
+                <ScrollArea className="h-full p-4" ref={scrollAreaRef}> {/* Assign ref to viewport */}
                     <div className="flex flex-col space-y-3 pr-1"> {/* Chat messages container */}
                         {chatHistory.map((message, index) => (
                             <MemoizedChatMessageItem key={index} message={message} renderMarkdown={renderMarkdown} />
