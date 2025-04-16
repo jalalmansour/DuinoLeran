@@ -185,6 +185,42 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     }
   }, [setUploadedFile, saveUploadHistory, toast]); // Dependencies
 
+    const extractTextFromFile = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target?.result as string;
+                resolve(text);
+            };
+            reader.onerror = (error) => reject(error);
+            reader.onabort = () => reject(new Error('File reading aborted'));
+            reader.readAsText(file, 'UTF-8'); // Ensure correct encoding
+        });
+    };
+
+
+    const traverseFileTree = async (item: any, callback: (file: File) => Promise<void>) => {
+        if (item.isFile) {
+            item.file(async (file: File) => {
+                try {
+                    await callback(file);
+                } catch (error) {
+                    console.error('Error during traverseFileTree callback:', error);
+                    toast({ title: 'Error processing file', description: String(error), variant: 'destructive' });
+                }
+            });
+        } else if (item.isDirectory) {
+            const dirReader = item.createReader();
+            dirReader.readEntries(async (entries: any[]) => {
+                for (const entry of entries) {
+                    await traverseFileTree(entry, callback);
+                }
+            }, (error: any) => {
+                console.warn('Error reading directory entries:', error);
+                toast({ title: 'Directory read error', description: String(error), variant: 'destructive' });
+            });
+        }
+    };
 
   // Function to trigger the summarization API call
   const triggerSummarization = useCallback(async (file: UploadedFile) => {
