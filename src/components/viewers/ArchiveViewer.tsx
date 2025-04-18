@@ -1,11 +1,12 @@
 // src/components/viewers/ArchiveViewer.tsx
-// src/components/viewers/ArchiveViewer.tsx
 'use client';
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Folder, File as FileIcon } from 'lucide-react'; // Icons for file list
+// --- ADDED IMPORT ---
+import { Folder, File as FileIcon, Loader2 } from 'lucide-react';
+// --- END ADDED IMPORT ---
 
 // Ensure interface matches the main one
 interface UploadedFile {
@@ -40,7 +41,7 @@ const ArchiveViewer: React.FC<ViewerProps> = ({ file }) => {
                  <ul className="space-y-1">
                     {fileList.map((name, index) => (
                         <li key={index} className="text-sm flex items-center text-[hsl(var(--foreground))]">
-                            {/* Heuristic for folder vs file based on trailing slash (common but not foolproof) */}
+                            {/* Heuristic for folder vs file based on trailing slash */}
                             {name.endsWith('/')
                                ? <Folder className="w-4 h-4 mr-2 text-muted-foreground shrink-0"/>
                                : <FileIcon className="w-4 h-4 mr-2 text-muted-foreground shrink-0"/>}
@@ -50,9 +51,13 @@ const ArchiveViewer: React.FC<ViewerProps> = ({ file }) => {
                  </ul>
              </ScrollArea>
           ) : (
-             <p className="text-sm text-muted-foreground italic p-3 border rounded bg-muted/20">Archive appears empty or contents could not be listed.</p>
+             // Add a loading state check here if needed
+             <div className="flex items-center justify-center h-20 text-muted-foreground">
+               {/* Example: If loading contents takes time */}
+               {/* <Loader2 className="w-5 h-5 animate-spin mr-2" /> */}
+               <p className="text-sm italic">Archive appears empty or contents could not be listed.</p>
+             </div>
           )}
-          {/* TODO: Implement Content Map UI, Batch Explainer, Grouped Summary */}
           <div className="mt-4 text-center text-xs text-muted-foreground italic">
             [Full archive extraction and interaction features coming soon]
          </div>
