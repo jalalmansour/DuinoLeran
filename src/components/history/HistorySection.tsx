@@ -1,186 +1,87 @@
 import React, { useCallback } from 'react';
 import {
-  Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-  CardContent,
+  Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import { UploadedFile } from '@/app/page'; // Assuming the interface is in page.tsx
-import { getFileIcon } from '@/app/page';
-import { toast } from '@/hooks/use-toast';
+import { type UploadedFile } from '@/app/page'; // Assuming the interface is in page.tsx
+import { getFileIcon } from '@/components/upload/UploadArea'; // Import from correct location
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '../ui/scroll-area'; // Import ScrollArea
 
 interface HistorySectionProps {
   uploadHistory: UploadedFile[];
-  onFileSelected: (fileId: string) => void;
-}
-
-async function fetchUploadHistory(userId: string): Promise<UploadedFile[]> {
-  try {
-    const response = await fetch('/api/upload-history', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': userId, // Include the user ID in the headers
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `Failed to fetch upload history: ${response.status} - ${errorData.error || 'Unknown error'}`
-      );
-    }
-
-    const data = await response.json();
-    return data.history;
-  } catch (error: any) {
-    console.error('Error fetching upload history:', error);
-    toast({
-      title: 'Error Fetching History',
-      description: error.message || 'Could not load upload history.',
-      variant: 'destructive',
-    });
-    return [];
-  }
-}
-
-async function clearHistory(userId: string) {
-  await fetch('/api/clear-upload-history', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-user-id': userId, // Include the user ID in the headers
-    },
-  });
-}
-
-
-function retrieveUserId(): string | null {
-  return localStorage.getItem('userId');
+  onFileSelected: (fileId: string) => void; // Callback when a file is clicked to load
+  onClearHistory: () => void; // Callback to clear history
 }
 
 const HistorySection: React.FC<HistorySectionProps> = ({
   uploadHistory,
   onFileSelected,
+  onClearHistory,
 }) => {
-  const clearUploadHistory = useCallback(() => {
-    const userId = retrieveUserId();
-    if (userId) {
-      clearHistory(userId)
-      .then(() => {
-        toast({
-          title: 'History Cleared',
-          description: 'Upload history has been removed.',
-        });
-      })
-      .catch((error) => {
-        console.error('Error clearing history:', error);
-        toast({
-          title: 'Error Clearing History',
-          description: 'Could not clear upload history.',
-          variant: 'destructive',
-        });
-      });
-    }
+  const { toast } = useToast();
 
-  }, []);
-
+  // Confirmation dialog logic could be added here if desired before clearing
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col glassmorphism"> {/* Ensure full height and flex */}
       <CardHeader>
-        <CardTitle>Upload History</CardTitle>
-        <CardDescription>
-          View and reload recently uploaded files.
+        <CardTitle className="text-[hsl(var(--primary))]">Access Logs</CardTitle>
+        <CardDescription className="text-[hsl(var(--muted-foreground))]">
+          Review and reload recently uploaded files.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow overflow-hidden p-0"> {/* Allow content to grow and hide overflow */}
         {uploadHistory.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No upload history found. Upload a file to get started.
-          </p>
-        ) : (
-          <div className="grid gap-4">
-            {uploadHistory.map((file) => {
-              const FileIconComponent = getFileIcon(file.name);
-              return (
-                <div
-                  key={file.id}
-                  className="border rounded-md p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-4">
-                    {React.createElement(FileIconComponent, {
-                      className: 'inline-block h-4 w-4 mr-2',
-                    })}
-                    <div>
-                      <p className="text-sm font-medium leading-none">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(file.size / 1024).toFixed(1)} KB - Uploaded:{' '}
-                        {new Date(file.lastModified).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="link"
-                    size="sm"
-        )}
-        {uploadHistory.length > 0 ? (
-          <div className="grid gap-4">
-            {uploadHistory.map((file) => {
-              const FileIconComponent = getFileIcon(file.name);
-              return (
-                <div
-                  key={file.id}
-                  className="border rounded-md p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-4">
-                    {React.createElement(FileIconComponent, {
-                      className: 'inline-block h-4 w-4 mr-2',
-                    })}
-                    <div>
-                      <p className="text-sm font-medium leading-none">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(file.size / 1024).toFixed(1)} KB - Uploaded:{' '}
-                        {new Date(file.lastModified).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() => {
-                      onFileSelected(file.id);
-                    }}
-                  >
-                    Load
-                  </Button>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-center h-full p-6">
+             <p className="text-sm text-muted-foreground italic">
+                No upload history found. Upload a file to get started.
+             </p>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No upload history found. Upload a file to get started.
-          </p>
+          // Make ScrollArea take remaining space
+          <ScrollArea className="h-full p-4 scrollbar-thin">
+              <ul className="space-y-3">
+                 {uploadHistory.map((file) => {
+                   const FileIconComponent = getFileIcon(file.name);
+                   return (
+                     <li
+                       key={file.id}
+                       className="flex items-center justify-between p-3 border border-[hsl(var(--border)/0.3)] rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] hover:bg-[hsl(var(--accent)/0.1)] transition-colors"
+                     >
+                       <div className="flex items-center space-x-2 overflow-hidden mr-2">
+                          {React.createElement(FileIconComponent, { className: 'h-4 w-4 shrink-0 text-muted-foreground' })}
+                          <div className="overflow-hidden">
+                              <p className="text-sm font-medium leading-none truncate" title={file.name}>
+                                 {file.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                 {(file.size / 1024).toFixed(1)} KB - {new Date(file.lastModified).toLocaleDateString()}
+                              </p>
+                           </div>
+                       </div>
+                       <Button
+                         variant="outline" // Changed for better visual separation
+                         size="sm"
+                         onClick={() => onFileSelected(file.id)}
+                       >
+                         Load
+                       </Button>
+                     </li>
+                   );
+                 })}
+              </ul>
+           </ScrollArea>
         )}
       </CardContent>
+      {uploadHistory.length > 0 && (
+        <CardFooter className="p-4 border-t border-[hsl(var(--border)/0.5)] justify-center">
+           {/* Add confirmation dialog here if needed */}
+          <Button variant="destructive" size="sm" onClick={onClearHistory}>
+            Clear All History
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 };
