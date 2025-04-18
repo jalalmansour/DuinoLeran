@@ -71,19 +71,40 @@ const ImageViewer = dynamic(() => import('@/components/viewers/ImageViewer').cat
 
 
 // --- Interfaces ---
+// Potentially in page.tsx or a shared types file
 interface UploadedFile {
     id: string;
     name: string;
-    type: string;
+    type: string; // Original MIME type
     size: number;
     lastModified: number;
-    content: any; // Content type varies (string, list, object, placeholder)
-    contentType: 'document' | 'presentation' | 'code' | 'audio' | 'video' | 'book' | 'archive' | 'list' | 'metadata' | 'image' | 'error' | 'other';
+    content: any; // Can be string (text), array (list), object (metadata/image), or null
+    contentType: // More specific type based on processing
+        | 'text'        // Plain text content
+        | 'code'        // Code content (treated as text)
+        | 'document'    // Extracted text from DOCX/PDF
+        | 'presentation'// Placeholder or extracted text
+        | 'book'        // Extracted text from EPUB etc.
+        | 'archive'     // List of filenames (string[])
+        | 'list'        // Generic list (e.g., from archive)
+        | 'metadata'    // Extracted metadata (object or string)
+        | 'image'       // Image data (e.g., { type: 'image', data: 'base64...', mimeType: 'image/png' })
+        | 'audio'       // Metadata or placeholder
+        | 'video'       // Metadata or placeholder
+        | 'error'       // Error message string
+        | 'other';      // Unknown/unsupported focus
 }
 
-interface ChatMessage {
-    role: 'user' | 'assistant';
-    content: string;
+// Interface for image content within UploadedFile
+interface ImageContent {
+    type: 'image';
+    data: string; // Base64 encoded data string (without the 'data:mime/type;base64,' prefix)
+    mimeType: string; // e.g., 'image/png', 'image/jpeg'
+}
+
+// Helper type guard
+function isImageContent(content: any): content is ImageContent {
+  return typeof content === 'object' && content !== null && content.type === 'image' && typeof content.data === 'string' && typeof content.mimeType === 'string';
 }
 
 // --- Framer Motion Variants ---
@@ -232,27 +253,27 @@ export default function Home() {
         if (!uploadedFile) return <p className="text-center text-muted-foreground italic">Error: No file data to display.</p>;
 
         // Pass common props needed by viewers
-        const commonViewerProps = {
-            file: uploadedFile,
-            // Pass summary state ONLY if viewers need to display it directly
-            // Otherwise, viewers might fetch their own specific data/summary
-            // summary: summary,
-            // isSummarizing: isSummarizing,
-        };
+        // src/app/page.tsx (relevant part of renderFileViewer)
+
+    const renderFileViewer = () => {
+        if (!uploadedFile) return <p className="text-center text-muted-foreground italic">Error: No file data to display.</p>;
+
+        const commonViewerProps = { file: uploadedFile };
 
         switch (uploadedFile.contentType) {
             case 'document': return <DocumentViewer {...commonViewerProps} />;
             case 'presentation': return <PresentationViewer {...commonViewerProps} />;
             case 'code': return <CodeViewer {...commonViewerProps} />;
-            case 'audio': return <AudioViewer {...commonViewerProps} />;
-            case 'video': return <VideoViewer {...commonViewerProps} />;
+            case 'audio': return <AudioViewer {...commonViewerProps} />; // Viewer should handle metadata/placeholder
+            case 'video': return <VideoViewer {...commonViewerProps} />; // Viewer should handle metadata/placeholder
             case 'book': return <BookViewer {...commonViewerProps} />;
-            case 'archive': case 'list': return <ArchiveViewer {...commonViewerProps} />;
-            case 'image': return <ImageViewer {...commonViewerProps} />;
-            case 'error': // Display error using GenericFileViewer
+            case 'archive': case 'list': return <ArchiveViewer {...commonViewerProps} />; // Viewer displays list from content
+            case 'image': return <ImageViewer {...commonViewerProps} />; // Viewer displays image from content object
+            case 'text': // Fall through to generic text viewer or DocumentViewer
+            case 'metadata': // Display metadata nicely
             case 'other':
-            case 'metadata': // Can use Generic or specific viewers might handle it
-            default: return <GenericFileViewer {...commonViewerProps} />;
+            case 'error': // Display error message nicely
+            default: return <GenericFileViewer {...commonViewerProps} />; // Handles errors, metadata, 'other', and fallback text
         }
     };
 
