@@ -9,24 +9,25 @@ import {
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+// --- CORRECT IMPORT ---
 import { ArrowLeft, File as DefaultFileIcon, HelpCircle, Loader2 } from 'lucide-react';
-import { getFileIcon } from '@/components/upload/UploadArea'; // Import from UploadArea
-import UploadArea from '@/components/upload/UploadArea'; // Import the updated UploadArea
-// Only import SummarySection if you intend to render it separately again
+// --- END CORRECT IMPORT ---
+import { getFileIcon } from '@/components/upload/UploadArea';
+import UploadArea from '@/components/upload/UploadArea';
+// Remove SummarySection import if only rendered via viewer
 // import SummarySection from '@/components/summary/SummarySection';
 import ChatSection from '@/components/chat/ChatSection';
 import { useToast } from '@/hooks/use-toast';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import JSZip from 'jszip';
-// import MediaTagReader from '@/components/MediaTagReader'; // Keep if media tags needed
+// import MediaTagReader from '@/components/MediaTagReader'; // Keep if needed
 
-// --- Interfaces (Should match definitions elsewhere or be imported) ---
+// --- Interfaces (Keep as before) ---
 interface UploadedFile {
     id: string; name: string; type: string; size: number; lastModified: number;
-    content: any; // Holds varied types: string, ImageContent, string[], object, null
+    content: any; // string (text), ImageContent, string[] (archive), object (metadata), null
     contentType: 'text' | 'code' | 'document' | 'presentation' | 'book' | 'archive' | 'list' | 'metadata' | 'image' | 'audio' | 'video' | 'error' | 'other';
-    // Optionally include the original File object if needed *after* processing (e.g., for audio player)
     originalFile?: File;
 }
 interface FileUploadInfo { // Matches the one from UploadArea
@@ -44,44 +45,44 @@ interface UploadInteractProps {
   toast: ReturnType<typeof useToast>['toast'];
 }
 
-// --- Constants & Setup ---
+// --- Constants & Setup (Keep as before) ---
 const generateId = () => Math.random().toString(36).substring(2, 15);
-const MAX_FILE_SIZE_MB = 100; // Match UploadArea
+const MAX_FILE_SIZE_MB = 100;
 
-// PDF.js Worker Configuration (Client-side)
+// PDF.js Worker Configuration (Keep as before)
 if (typeof window !== 'undefined') {
-    const workerSrc = `/pdf.worker.mjs`; // Ensure this path is correct relative to your public folder
+    const workerSrc = `/pdf.worker.mjs`;
    try {
-     // Check if it's already set to avoid unnecessary reassignments
      if (pdfjsLib.GlobalWorkerOptions.workerSrc !== workerSrc) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-        console.log("PDF.js worker source set to:", workerSrc);
+        // console.log("PDF.js worker source set to:", workerSrc); // Keep console log for debugging if needed
      }
    } catch (e) {
-     console.warn("Could not set PDF.js worker source. PDF processing might fail. Ensure pdf.worker.mjs is in the public folder.", e);
+     console.warn("Could not set PDF.js worker source. Ensure pdf.worker.mjs is in the public folder.", e);
    }
 }
 
-// --- Dynamic Viewers (Keep as before) ---
+
+// --- Dynamic Viewers ---
+// IMPORTANT: Make sure Loader2 is imported here where ViewerLoading is defined
 const ViewerLoading = ({ message = "Loading..." }: { message?: string }) => (
     <div className="flex items-center justify-center h-40 text-[hsl(var(--muted-foreground))]">
-        <Loader2 className="h-6 w-6 animate-spin mr-2 text-[hsl(var(--primary))]" />
+        <Loader2 className="h-6 w-6 animate-spin mr-2 text-[hsl(var(--primary))]" /> {/* Loader2 usage */}
         {message}
     </div>
 );
-// Add error boundaries or improve fallbacks if necessary
 const GenericFileViewer = dynamic(() => import('@/components/viewers/GenericFileViewer').catch(err => { console.error("Viewer Load Error:", err); return () => <div className='p-4 text-destructive'>Error loading viewer.</div>; }), { loading: () => <ViewerLoading message="Loading Viewer..." /> });
-const DocumentViewer = dynamic(() => import('@/components/viewers/DocumentViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Document..." /> });
-const CodeViewer = dynamic(() => import('@/components/viewers/CodeViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Code..." /> });
-const ArchiveViewer = dynamic(() => import('@/components/viewers/ArchiveViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Archive..." /> });
-const ImageViewer = dynamic(() => import('@/components/viewers/ImageViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Image..." /> });
-const AudioViewer = dynamic(() => import('@/components/viewers/AudioViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Audio..." /> });
-const VideoViewer = dynamic(() => import('@/components/viewers/VideoViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Video..." /> });
-const BookViewer = dynamic(() => import('@/components/viewers/BookViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Book..." /> });
-const PresentationViewer = dynamic(() => import('@/components/viewers/PresentationViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer }), { loading: () => <ViewerLoading message="Loading Presentation..." /> });
+const DocumentViewer = dynamic(() => import('@/components/viewers/DocumentViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Document..." /> });
+const CodeViewer = dynamic(() => import('@/components/viewers/CodeViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Code..." /> });
+const ArchiveViewer = dynamic(() => import('@/components/viewers/ArchiveViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Archive..." /> });
+const ImageViewer = dynamic(() => import('@/components/viewers/ImageViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Image..." /> });
+const AudioViewer = dynamic(() => import('@/components/viewers/AudioViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Audio..." /> });
+const VideoViewer = dynamic(() => import('@/components/viewers/VideoViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Video..." /> });
+const BookViewer = dynamic(() => import('@/components/viewers/BookViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Book..." /> });
+const PresentationViewer = dynamic(() => import('@/components/viewers/PresentationViewer').catch(err => { console.error("Viewer Load Error:", err); return GenericFileViewer; }), { loading: () => <ViewerLoading message="Loading Presentation..." /> });
 
 
-// --- Component Implementation ---
+// --- Component Implementation (Keep the rest as before) ---
 const UploadInteract: React.FC<UploadInteractProps> = ({
   setIsProcessing: setParentProcessing,
   onFileProcessed,
@@ -96,13 +97,12 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
   const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
-  const [showUploadArea, setShowUploadArea] = useState<boolean>(true); // Controls UI state
-  // const [audioVideoTags, setAudioVideoTags] = useState<any>(null); // State for media tags
+  const [showUploadArea, setShowUploadArea] = useState<boolean>(true);
 
-  // --- Content Type Determination ---
-  const determineContentType = useCallback((fileType: string, fileName: string): UploadedFile['contentType'] => {
+   // --- Content Type Determination (Keep as before) ---
+   const determineContentType = useCallback((fileType: string, fileName: string): UploadedFile['contentType'] => {
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
-    const mimeType = fileType?.toLowerCase() || '';
+    const mimeType = fileType?.toLowerCase() || ''; // Handle potential undefined type
 
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('audio/')) return 'audio';
@@ -120,9 +120,9 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
 
     console.warn(`Unknown file type: MIME=${mimeType}, extension=${extension}, falling back to 'other'.`);
     return 'other';
-  }, []); // No dependencies needed
+  }, []);
 
-  // --- File Processing Logic ---
+  // --- File Processing Logic (Keep as before) ---
   const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
     if (!file) {
       toast({ title: "Error", description: "No file provided.", variant: "destructive" });
@@ -136,7 +136,6 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
     console.log(`Starting processing for: ${file.name}, Type: ${file.type}`);
     setIsProcessingFile(true);
     setParentProcessing(true);
-    // setAudioVideoTags(null); // Reset if using MediaTagReader
 
     let fileContent: any = `*Processing error or unsupported format for ${file.name}*`;
     let contentType = determineContentType(file.type, file.name);
@@ -171,69 +170,66 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
             console.log('DOCX text extracted (first 100 chars):', fileContent.substring(0, 100));
           } else {
             try {
-                console.log('Attempting text fallback for other document type...');
-                fileContent = await file.text();
-                contentType = 'text'; // Reclassify
+              console.log('Attempting text fallback for other document type...');
+              fileContent = await file.text();
+              contentType = 'text'; // Reclassify
             } catch {
-                console.warn('Text fallback failed for document type.');
+              console.warn('Text fallback failed for document type.');
             }
           }
           break;
         case 'image':
-           console.log('Processing Image...');
-           fileContent = await new Promise<ImageContent>((resolve, reject) => {
-             const reader = new FileReader();
-             reader.onload = (event) => {
-               const dataUrl = event.target?.result as string;
-               if (!dataUrl || !dataUrl.includes(',')) return reject(new Error('Invalid Data URL'));
-               const base64Data = dataUrl.split(',')[1];
-               resolve({ type: 'image', data: base64Data, mimeType: file.type });
-             };
-             reader.onerror = (error) => reject(new Error('Failed to read image file.'));
-             reader.readAsDataURL(file);
-           });
-           console.log('Image processed to data URL.');
-           break;
+          console.log('Processing Image...');
+          fileContent = await new Promise<ImageContent>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const dataUrl = event.target?.result as string;
+              if (!dataUrl || !dataUrl.includes(',')) return reject(new Error('Invalid Data URL'));
+              const base64Data = dataUrl.split(',')[1];
+              resolve({ type: 'image', data: base64Data, mimeType: file.type });
+            };
+            reader.onerror = (error) => reject(new Error('Failed to read image file.'));
+            reader.readAsDataURL(file);
+          });
+          console.log('Image processed to data URL.');
+          break;
         case 'archive':
-            console.log('Processing Archive...');
-            const zip = await JSZip.loadAsync(file);
-            const fileList = Object.keys(zip.files).filter(name => !zip.files[name].dir);
-            fileContent = fileList.slice(0, 50); // Preview limit
-            if (fileList.length > 50) fileContent.push('... (and more)');
-            console.log('Archive contents listed (preview):', fileContent);
-            break;
+          console.log('Processing Archive...');
+          const zip = await JSZip.loadAsync(file);
+          const fileList = Object.keys(zip.files).filter(name => !zip.files[name].dir);
+          fileContent = fileList.slice(0, 50);
+          if (fileList.length > 50) fileContent.push('... (and more)');
+          console.log('Archive contents listed (preview):', fileContent);
+          break;
         case 'audio':
         case 'video':
-            console.log(`Processing ${contentType}... storing metadata placeholder.`);
-            // Store metadata/placeholder. Actual tags might be handled by MediaTagReader later
-            fileContent = { metadata: `Basic info for ${file.name}`, originalFile: file }; // Store original file ref if player needs it
-            break;
-         // Add specific handlers for 'presentation', 'book' if needed
-         case 'presentation':
-         case 'book':
-         default: // 'other'
-           try {
-              console.log(`Attempting text extraction for ${contentType}...`);
-              fileContent = await file.text();
-              if (fileContent.trim()) {
-                 console.log('Text extraction successful, reclassifying as text.');
-                 contentType = 'text'; // Reclassify if text read works
-              } else {
-                 fileContent = `*Note: Content preview not available for this file type (${file.type || 'unknown'}).*`;
-                 console.log('File seems empty or unreadable as text.');
-              }
-           } catch (e){
-             console.warn(`Failed to read ${contentType} as text.`, e);
-             fileContent = `*Note: Cannot display content for this file type (${file.type || 'unknown'}).*`;
-           }
-           break;
+          console.log(`Processing ${contentType}... storing metadata placeholder.`);
+          fileContent = { metadata: `Basic info for ${file.name}`, originalFile: file };
+          break;
+        case 'presentation':
+        case 'book':
+        default: // 'other'
+          try {
+            console.log(`Attempting text extraction for ${contentType}...`);
+            fileContent = await file.text();
+            if (fileContent.trim()) {
+              console.log('Text extraction successful, reclassifying as text.');
+              contentType = 'text';
+            } else {
+              fileContent = `*Note: Content preview not available for this file type (${file.type || 'unknown'}).*`;
+              console.log('File seems empty or unreadable as text.');
+            }
+          } catch (e) {
+            console.warn(`Failed to read ${contentType} as text.`, e);
+            fileContent = `*Note: Cannot display content for this file type (${file.type || 'unknown'}).*`;
+          }
+          break;
       }
 
-       // Content length check (after potential extraction)
-       if (typeof fileContent === 'string' && fileContent.length > 500000) {
-         console.warn(`Truncating large content for ${file.name} (length: ${fileContent.length})`);
-         fileContent = fileContent.substring(0, 500000) + "\n\n... (Content Truncated)";
-       }
+      if (typeof fileContent === 'string' && fileContent.length > 500000) {
+        console.warn(`Truncating large content for ${file.name} (length: ${fileContent.length})`);
+        fileContent = fileContent.substring(0, 500000) + "\n\n... (Content Truncated)";
+      }
 
     } catch (error: any) {
       console.error(`Error processing ${file.name}:`, error);
@@ -250,22 +246,21 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
       lastModified: file.lastModified,
       content: fileContent,
       contentType: contentType,
-      originalFile: (contentType === 'audio' || contentType === 'video') ? file : undefined, // Keep original for players
+      originalFile: (contentType === 'audio' || contentType === 'video') ? file : undefined,
     };
 
     console.log(`Finished processing ${processedFile.name}. Final content type: ${processedFile.contentType}`);
     setIsProcessingFile(false);
     setParentProcessing(false);
 
-    // IMPORTANT: Call parent callback AFTER state updates are scheduled
     onFileProcessed(processedFile, processingError ?? undefined);
 
-    return processedFile; // Return for internal use (e.g., setting state)
+    return processedFile;
 
-  }, [toast, setParentProcessing, onFileProcessed, determineContentType]); // Dependencies
+  }, [toast, setParentProcessing, onFileProcessed, determineContentType]);
 
 
-   // Callback for UploadArea
+  // --- Callback for UploadArea (Keep as before) ---
    const handleFileSelectedFromArea = useCallback(
      async (fileInfo: FileUploadInfo) => {
         if (!fileInfo?.file) {
@@ -274,151 +269,144 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
              setParentProcessing(false);
              return;
         }
-       // Start processing and wait for the result
        const processed = await processFile(fileInfo.file);
-
-       // Update internal state *after* processing finishes
-       setInternalUploadedFile(processed);
-       // onFileProcessed is already called within processFile
+       setInternalUploadedFile(processed); // Update internal state which triggers useEffect
      },
-     [processFile, toast] // processFile includes necessary deps
+     [processFile, toast]
    );
 
-   // --- Trigger Summarization ---
-   const triggerSummarization = useCallback(async (file: UploadedFile | null) => {
-        if (!file) return;
-        console.log(`Checking summarization for type: ${file.contentType}`);
+  // --- Trigger Summarization (Keep as before) ---
+  const triggerSummarization = useCallback(async (file: UploadedFile | null) => {
+    if (!file) return;
+    console.log(`Checking summarization for type: ${file.contentType}`);
 
-        const canSummarize = ['text', 'code', 'document', 'book'].includes(file.contentType);
-        if (!canSummarize || typeof file.content !== 'string' || file.content.startsWith('*Error') || file.content.startsWith('*Note')) {
-            const note = file.contentType === 'error' ? '' : `*Note: Automatic summary is not available for ${file.contentType}.*`;
-            console.log("Cannot summarize, setting note:", note);
-            setSummary(note);
-            setIsSummarizing(false);
-            return;
+    const canSummarize = ['text', 'code', 'document', 'book'].includes(file.contentType);
+    if (!canSummarize || typeof file.content !== 'string' || file.content.startsWith('*Error') || file.content.startsWith('*Note')) {
+        const note = file.contentType === 'error' ? '' : `*Note: Automatic summary is not available for ${file.contentType}.*`;
+        console.log("Cannot summarize, setting note:", note);
+        setSummary(note);
+        setIsSummarizing(false);
+        return;
+    }
+
+    console.log("Starting summarization API call...");
+    setIsSummarizing(true);
+    setSummary('');
+
+    try {
+        const response = await fetch('/api/summarize-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileContent: file.content }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`API Error ${response.status}: ${errorData.error || response.statusText}`);
         }
 
-        console.log("Starting summarization API call...");
-        setIsSummarizing(true);
-        setSummary(''); // Clear previous summary
-
-        try {
-            const response = await fetch('/api/summarize-document', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileContent: file.content }), // Pass the actual content
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(`API Error ${response.status}: ${errorData.error || response.statusText}`);
-            }
-
-            const data = await response.json();
-            if (data.summary) {
-                console.log("Summarization successful.");
-                setSummary(data.summary);
-                setXp(prevXp => prevXp + 10); // Award XP
-            } else {
-                throw new Error('Summary not found in API response.');
-            }
-        } catch (error: any) {
-            console.error('Error during summarization fetch:', error);
-            const errorMessage = `*Error generating summary: ${error.message}*`;
-            setSummary(errorMessage);
-            toast({ title: 'Summarization Error', description: error.message || 'Failed to generate summary.', variant: 'destructive' });
-        } finally {
-            setIsSummarizing(false);
+        const data = await response.json();
+        if (data.summary) {
+            console.log("Summarization successful.");
+            setSummary(data.summary);
+            setXp(prevXp => prevXp + 10);
+        } else {
+            throw new Error('Summary not found in API response.');
         }
-    }, [toast, setXp]); // Dependencies for triggerSummarization
+    } catch (error: any) {
+        console.error('Error during summarization fetch:', error);
+        const errorMessage = `*Error generating summary: ${error.message}*`;
+        setSummary(errorMessage);
+        toast({ title: 'Summarization Error', description: error.message || 'Failed to generate summary.', variant: 'destructive' });
+    } finally {
+        setIsSummarizing(false);
+    }
+}, [toast, setXp]);
 
-  // Effect to manage UI state and trigger actions when file changes
+  // --- Effect to manage UI state (Keep as before) ---
   useEffect(() => {
     if (internalUploadedFile) {
       console.log('Internal file state updated:', internalUploadedFile.name, internalUploadedFile.contentType);
-      setShowUploadArea(false); // Hide upload area
-      setChatHistory([]);      // Reset chat
-      setSummary('');         // Reset summary
+      setShowUploadArea(false);
+      setChatHistory([]);
+      setSummary('');
       setIsSummarizing(false);
       setIsChatLoading(false);
-      // Trigger summary only if applicable and not an error
       if (internalUploadedFile.contentType !== 'error') {
           triggerSummarization(internalUploadedFile);
       } else {
-          setSummary(internalUploadedFile.content); // Show error in summary area
+          setSummary(internalUploadedFile.content);
       }
-       saveUploadHistory(internalUploadedFile); // Save *after* processing
+       saveUploadHistory(internalUploadedFile);
     } else {
-      // Reset when file is cleared (e.g., by Back button)
        console.log('Internal file state cleared.');
       setShowUploadArea(true);
       setChatHistory([]);
       setSummary('');
     }
-  }, [internalUploadedFile, triggerSummarization, saveUploadHistory]); // Effect depends on the file state itself
+  }, [internalUploadedFile, triggerSummarization, saveUploadHistory]);
 
   // --- Chat Handling (Keep as before) ---
-    const handleSendMessage = useCallback(async (message: string) => {
-      if (!internalUploadedFile || isChatLoading) { return; }
-      if (internalUploadedFile.contentType === 'error') { toast({ title: "Cannot Chat", description: "File processing failed.", variant: "warning" }); return; }
+  const handleSendMessage = useCallback(async (message: string) => {
+    if (!internalUploadedFile || isChatLoading) { return; }
+    if (internalUploadedFile.contentType === 'error') { toast({ title: "Cannot Chat", description: "File processing failed.", variant: "warning" }); return; }
 
-      const userMessage: ChatMessage = { role: 'user', content: message };
-      setChatHistory(prev => [...prev, userMessage]);
-      setIsChatLoading(true);
+    const userMessage: ChatMessage = { role: 'user', content: message };
+    setChatHistory(prev => [...prev, userMessage]);
+    setIsChatLoading(true);
 
-      try {
-          let documentContextForAI: any;
-          if (internalUploadedFile.contentType === 'image') {
-              documentContextForAI = internalUploadedFile.content;
-          } else if (typeof internalUploadedFile.content !== 'string') {
-               documentContextForAI = JSON.stringify(internalUploadedFile.content);
-          } else {
-              documentContextForAI = internalUploadedFile.content;
-          }
+    try {
+        let documentContextForAI: any;
+        if (internalUploadedFile.contentType === 'image') {
+            documentContextForAI = internalUploadedFile.content;
+        } else if (typeof internalUploadedFile.content !== 'string') {
+             documentContextForAI = JSON.stringify(internalUploadedFile.content);
+        } else {
+            documentContextForAI = internalUploadedFile.content;
+        }
 
-          const response = await fetch('/api/chat-with-document', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  documentContent: documentContextForAI,
-                  userMessage: message
-              }),
-          });
+        const response = await fetch('/api/chat-with-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                documentContent: documentContextForAI,
+                userMessage: message
+            }),
+        });
 
-          if (!response.ok) {
-             const errorData = await response.json().catch(() => ({}));
-             throw new Error(`API Error ${response.status}: ${errorData.error || response.statusText}`);
-          }
+        if (!response.ok) {
+           const errorData = await response.json().catch(() => ({}));
+           throw new Error(`API Error ${response.status}: ${errorData.error || response.statusText}`);
+        }
 
-          const data = await response.json();
-          if (data.response) {
-              setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
-              setXp(prev => prev + 5);
-          } else { throw new Error('No response content from AI.'); }
-      } catch (error: any) {
-          console.error('Chat API error:', error);
-          const errorMessage = `*Error: ${error.message || 'Could not get response.'}*`;
-          setChatHistory(prev => [...prev, { role: 'assistant', content: errorMessage }]);
-          toast({ title: 'Chat Error', description: error.message || 'Failed to get AI response.', variant: 'destructive' });
-      } finally {
-          setIsChatLoading(false);
-      }
-  }, [internalUploadedFile, isChatLoading, toast, setXp]);
+        const data = await response.json();
+        if (data.response) {
+            setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
+            setXp(prev => prev + 5);
+        } else { throw new Error('No response content from AI.'); }
+    } catch (error: any) {
+        console.error('Chat API error:', error);
+        const errorMessage = `*Error: ${error.message || 'Could not get response.'}*`;
+        setChatHistory(prev => [...prev, { role: 'assistant', content: errorMessage }]);
+        toast({ title: 'Chat Error', description: error.message || 'Failed to get AI response.', variant: 'destructive' });
+    } finally {
+        setIsChatLoading(false);
+    }
+}, [internalUploadedFile, isChatLoading, toast, setXp]);
 
-  // --- UI Actions ---
+  // --- UI Actions (Keep as before) ---
   const handleBackButtonClick = () => {
     console.log("Back button clicked, clearing file state.");
-    setInternalUploadedFile(null); // Clear internal state FIRST
-    onFileProcessed(null);      // Then inform parent
-    // setShowUploadArea(true); // This will be handled by the useEffect
+    setInternalUploadedFile(null);
+    onFileProcessed(null);
   };
 
   const FileIconComponent = internalUploadedFile ? getFileIcon(internalUploadedFile.name) : DefaultFileIcon;
 
-  // --- Viewer Rendering Logic ---
+  // --- Viewer Rendering Logic (Keep as before) ---
    const renderFileViewer = () => {
        if (!internalUploadedFile) return null;
-       if (isProcessingFile) return <ViewerLoading message="Processing File..." />; // Show loading within viewer area too
+       if (isProcessingFile) return <ViewerLoading message="Processing File..." />;
 
        switch (internalUploadedFile.contentType) {
            case 'document': return <DocumentViewer file={internalUploadedFile} />;
@@ -429,13 +417,13 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
            case 'video': return <VideoViewer file={internalUploadedFile} />;
            case 'presentation': return <PresentationViewer file={internalUploadedFile} />;
            case 'book': return <BookViewer file={internalUploadedFile} />;
-           case 'error': // Explicitly handle error type
+           case 'error':
            case 'other':
            default: return <GenericFileViewer file={internalUploadedFile} />;
        }
    };
 
-  // --- Main Render ---
+  // --- Main Render (Keep as before) ---
   return (
     <>
       <AnimatePresence mode="wait">
@@ -447,7 +435,6 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-             {/* Pass the correct callback */}
             <UploadArea onFileSelected={handleFileSelectedFromArea} className="mt-4" />
           </motion.div>
         ) : (
@@ -470,7 +457,6 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
                   <span className="text-sm font-medium truncate" title={internalUploadedFile.name}>{internalUploadedFile.name}</span>
                   <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">({(internalUploadedFile.size / 1024).toFixed(1)} KB)</span>
                 </div>
-                {/* Optional: Add other actions like 'Download Original' if applicable */}
               </div>
             )}
 
@@ -485,19 +471,18 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
                <div className="col-span-1 flex flex-col">
                  {internalUploadedFile && (
                      <Accordion type="multiple" defaultValue={['summary', 'chat']} className="w-full space-y-4 flex flex-col flex-grow">
-                        {/* Summary Item (Conditionally Rendered) */}
+                        {/* Summary Item */}
                         {['text', 'code', 'document', 'book'].includes(internalUploadedFile.contentType) && (
                          <AccordionItem value="summary" className="border rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] glassmorphism overflow-hidden flex-shrink-0">
                            <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline text-[hsl(var(--foreground))] data-[state=open]:border-b data-[state=open]:border-[hsl(var(--border)/0.5)]">
                              AI Summary
                            </AccordionTrigger>
-                           <AccordionContent className="p-4 max-h-60 overflow-y-auto scrollbar-thin"> {/* Limit summary height */}
+                           <AccordionContent className="p-4 max-h-60 overflow-y-auto scrollbar-thin">
                              {isSummarizing ? (
                                <div className="flex items-center space-x-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin mr-2"/> Summarizing...</div>
                              ) : summary ? (
                                <div className="prose prose-sm dark:prose-invert max-w-none text-[hsl(var(--card-foreground))]">
-                                   {/* Use MemoizedMarkdown or similar */}
-                                   <p>{summary}</p>
+                                   <p>{summary}</p> {/* Simplified display */}
                                </div>
                              ) : (
                                <p className="text-sm text-muted-foreground italic">No summary generated yet.</p>
@@ -507,11 +492,11 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
                         )}
 
                         {/* Chat Item */}
-                        <AccordionItem value="chat" className="border rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] glassmorphism overflow-hidden flex flex-col flex-grow min-h-[300px]"> {/* Ensure chat takes space */}
+                        <AccordionItem value="chat" className="border rounded-[var(--radius)] bg-[hsl(var(--card)/0.5)] glassmorphism overflow-hidden flex flex-col flex-grow min-h-[300px]">
                           <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline text-[hsl(var(--foreground))] border-b border-[hsl(var(--border)/0.5)] flex-shrink-0">
                             Chat with Document
                           </AccordionTrigger>
-                          <AccordionContent className="p-0 flex-grow overflow-hidden"> {/* Let ChatSection manage its scroll */}
+                          <AccordionContent className="p-0 flex-grow overflow-hidden">
                             <ChatSection
                               chatHistory={chatHistory}
                               isChatLoading={isChatLoading}
@@ -522,16 +507,15 @@ const UploadInteract: React.FC<UploadInteractProps> = ({
                         </AccordionItem>
                      </Accordion>
                  )}
-                 {/* Fallback if file processing resulted in null */}
                  {!internalUploadedFile && !isProcessingFile && (
-                     <div className="text-center p-6 text-muted-foreground italic col-span-full"> {/* Span full width if needed */}
+                     <div className="text-center p-6 text-muted-foreground italic col-span-full">
                          Could not load file. Please try uploading again.
                          <Button variant="link" onClick={handleBackButtonClick} className="ml-2">Go back</Button>
                      </div>
                  )}
                </div> {/* End Right Column */}
             </div> {/* End Grid */}
-          </motion.div> // End interaction-area motion.div
+          </motion.div>
         )}
       </AnimatePresence>
     </>
